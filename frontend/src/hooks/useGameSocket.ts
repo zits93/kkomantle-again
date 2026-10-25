@@ -17,12 +17,14 @@ export const useGameSocket = (backendUrl?: string) => {
   const [myGuesses, setMyGuesses] = useState<GuessItem[]>([]);
   const [allGuesses, setAllGuesses] = useState<GuessItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([
-    { rank: 1, nickname: '마스터코더', winCount: 15 },
-    { rank: 2, nickname: '단어사냥꾼', winCount: 11 },
-    { rank: 3, nickname: '알파고', winCount: 8 },
-    { rank: 4, nickname: '초보탐험가', winCount: 4 },
-  ]);
+  const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('kkomantle_real_hall_of_fame');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [voteState, setVoteState] = useState<VoteState>({
     activeUsers: 1,
     votes: 0,
@@ -48,6 +50,28 @@ export const useGameSocket = (backendUrl?: string) => {
       socketRef.current.send(JSON.stringify({ type: 'change_nickname', nickname: trimmed }));
     }
   };
+
+  // Initial REST fetch for real Hall of Fame data from backend
+  useEffect(() => {
+    const fetchRealLeaderboard = async () => {
+      try {
+        const httpUrl = backendUrl
+          ? backendUrl.replace('ws://', 'http://').replace('wss://', 'https://')
+          : (window.location.protocol === 'https:' ? `${window.location.origin}/api/hall-of-fame` : `http://${window.location.hostname}:8000/api/hall-of-fame`);
+        const res = await fetch(httpUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setHallOfFame(data);
+            localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
+          }
+        }
+      } catch {
+        // Fallback to local storage (already loaded)
+      }
+    };
+    fetchRealLeaderboard();
+  }, [backendUrl]);
 
   // WebSocket connection management
   useEffect(() => {
@@ -110,7 +134,10 @@ export const useGameSocket = (backendUrl?: string) => {
         setRoundId(data.roundId);
         setActiveUsers(data.activeUsers || []);
         setVoteState(data.voteState || { activeUsers: 1, votes: 0, requiredVotes: 2, hasVoted: false });
-        if (data.hallOfFame) setHallOfFame(data.hallOfFame);
+        if (data.hallOfFame) {
+          setHallOfFame(data.hallOfFame);
+          localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data.hallOfFame));
+        }
         if (data.chatHistory) setChatMessages(data.chatHistory);
         if (data.allGuesses) setAllGuesses(data.allGuesses);
         break;
@@ -175,6 +202,7 @@ export const useGameSocket = (backendUrl?: string) => {
 
       case 'hall_of_fame_update':
         setHallOfFame(data.hallOfFame);
+        localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data.hallOfFame));
         break;
 
       case 'vote_update':
@@ -244,16 +272,19 @@ export const useGameSocket = (backendUrl?: string) => {
       setIsAnswerRevealed(true);
       setRevealedWord(target);
       setHallOfFame(prev => {
+        let updated: HallOfFameEntry[];
         const found = prev.find(h => h.nickname === nickname);
         if (found) {
-          return prev.map(h => h.nickname === nickname ? { ...h, winCount: h.winCount + 1 } : h)
+          updated = prev.map(h => h.nickname === nickname ? { ...h, winCount: h.winCount + 1 } : h)
             .sort((a,b) => b.winCount - a.winCount)
             .map((h, i) => ({ ...h, rank: i + 1 }));
         } else {
-          return [...prev, { rank: prev.length + 1, nickname, winCount: 1 }]
+          updated = [...prev, { rank: prev.length + 1, nickname, winCount: 1 }]
             .sort((a,b) => b.winCount - a.winCount)
             .map((h, i) => ({ ...h, rank: i + 1 }));
         }
+        localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(updated));
+        return updated;
       });
     }
 

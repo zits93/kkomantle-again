@@ -59,8 +59,10 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
         {/* List */}
         <div className="p-3 max-h-72 overflow-y-auto space-y-1">
           {entries.length === 0 ? (
-            <div className="text-center py-8 text-xs text-zinc-400">
-              아직 정답자가 없습니다.
+            <div className="text-center py-10 px-4 text-xs text-zinc-400">
+              <div className="text-2xl mb-2">🏆</div>
+              <p className="font-medium text-zinc-700 dark:text-zinc-300">아직 등록된 정답자가 없습니다.</p>
+              <p className="text-[11px] text-zinc-400 mt-1">단어를 맞추고 명예의 전당 첫 번째 1위가 되어보세요!</p>
             </div>
           ) : (
             entries.map((entry) => {
