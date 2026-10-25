@@ -53,13 +53,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-semibold text-xs tracking-wide">
             {getExcelWeekTitle()}
           </span>
-          <button
-            onClick={onOpenServerSettings}
-            className={`text-[10px] px-2 py-0.2 rounded font-mono cursor-pointer hover:opacity-90 ${isConnected ? 'bg-emerald-700' : 'bg-amber-700'}`}
-            title="서버 연결 설정"
+          <div
+            className="flex items-center space-x-1.5 px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-500/30 text-[10px] select-none"
+            title={isConnected ? '서버 연결됨' : '서버 연결 끊김'}
           >
-            {isConnected ? '온라인 연결됨' : '로컬 모드'}
-          </button>
+            <span className={`block w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+            <span className="font-mono text-emerald-100">{isConnected ? '온라인' : '오프라인'}</span>
+          </div>
         </div>
 
         <div className="flex items-center space-x-3 text-xs">
@@ -132,14 +132,13 @@ export const Header: React.FC<HeaderProps> = ({
             <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               꼬맨틀 한번더
             </h1>
-            <button
-              onClick={onOpenServerSettings}
-              className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-              title={isConnected ? '서버 연결됨 (클릭하여 설정)' : '오프라인 모드 (클릭하여 설정)'}
-              aria-label={isConnected ? '서버 연결됨. 설정 열기' : '오프라인 모드. 설정 열기'}
+            <div
+              className="p-1 flex items-center justify-center select-none"
+              title={isConnected ? '서버 연결됨' : '서버 연결 끊김'}
+              aria-label={isConnected ? '서버 연결됨' : '서버 연결 끊김'}
             >
-              <span className={`block w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
-            </button>
+              <span className={`block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 shadow-xs' : 'bg-red-500 shadow-xs'}`} />
+            </div>
           </div>
 
           {/* Nickname pill */}

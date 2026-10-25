@@ -74,9 +74,12 @@ class WordService:
         guess: str,
         target: str,
         target_vector: Optional[Any] = None,
-        notice: Optional[str] = None
+        notice: Optional[str] = None,
+        round_ranks: Optional[Dict[str, int]] = None,
+        round_top_dots: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """Parallel, vector-accelerated guess evaluation."""
+        """Parallel, vector-accelerated guess evaluation with exact 1-based monotonic ranking."""
+        import numpy as np
         guess = guess.strip()
         translated = embedding_service.translate_to_korean(guess)
         is_answer = (guess.lower() == target.lower() or translated.lower() == target.lower())
@@ -86,18 +89,16 @@ class WordService:
             rank = 1
         else:
             if target_vector is not None:
-                similarity = embedding_service.calculate_similarity_to_target_vector(guess, target_vector, target)
+                dot, similarity = embedding_service.calculate_dot_and_similarity_to_target_vector(guess, target_vector, target)
             else:
-                similarity = embedding_service.calculate_similarity(guess, target)
+                dot, similarity = embedding_service.calculate_dot_and_similarity(guess, target)
 
-            if similarity >= 58.0:
-                rank = max(2, min(10, int((100.0 - similarity) / 4.2 * 8) + 2))
-            elif similarity >= 45.0:
-                rank = 11 + int(((58.0 - similarity) / 13.0) * 89)
-            elif similarity >= 35.0:
-                rank = 101 + int(((45.0 - similarity) / 10.0) * 199)
-            elif similarity >= 24.0:
-                rank = 301 + int(((35.0 - similarity) / 11.0) * 699)
+            clean_key = translated if translated else guess
+            if round_ranks and clean_key in round_ranks:
+                rank = round_ranks[clean_key]
+            elif round_top_dots is not None and len(round_top_dots) > 0 and dot >= round_top_dots[-1]:
+                idx = int(np.searchsorted(-round_top_dots, -dot))
+                rank = max(2, idx + 1)
             else:
                 rank = None
 

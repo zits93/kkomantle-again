@@ -177,32 +177,71 @@ class EmbeddingService:
         t = min(1.0, (dot - 0.50) / 0.50)
         return round(min(99.4, 60.0 + (t ** 0.8) * 39.4), 1)
 
-    def calculate_similarity_to_target_vector(self, word: str, target_vector: np.ndarray, target_word: str) -> float:
-        """Ultra-fast O(1) similarity calculation using pre-normalized target vector."""
+    def precompute_top_ranks(self, target_word: str) -> tuple[Dict[str, int], np.ndarray]:
+        """Precompute exact 1-based ranks (1 to 1000) and top dot products for target word."""
+        self._init_fasttext()
+        if self._model is None:
+            return {}, np.array([], dtype=np.float32)
+
+        target_ko = self.translate_to_korean(target_word)
+        target_vec = self.get_vector(target_ko)
+
+        if not hasattr(self, '_unit_matrix') or self._unit_matrix is None:
+            vecs = self._model.wv.vectors
+            norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+            self._unit_matrix = (vecs / (norms + 1e-9)).astype(np.float32)
+            self._vocab_words = self._model.wv.index_to_key
+
+        dots = np.dot(self._unit_matrix, target_vec)
+        top_count = min(1000, len(self._vocab_words))
+        top_indices = np.argsort(-dots)[:top_count]
+
+        ranks: Dict[str, int] = {}
+        for rank, idx in enumerate(top_indices, start=1):
+            ranks[self._vocab_words[idx]] = rank
+
+        ranks[target_ko] = 1
+        ranks[target_word] = 1
+
+        top_dots = dots[top_indices].astype(np.float32)
+        return ranks, top_dots
+
+    def calculate_dot_and_similarity_to_target_vector(self, word: str, target_vector: np.ndarray, target_word: str) -> tuple[float, float]:
+        """Returns (raw_dot, scaled_similarity)."""
         w1 = word.strip().lower()
         w2 = target_word.strip().lower()
         t1 = self.translate_to_korean(w1)
         t2 = self.translate_to_korean(w2)
 
         if w1 == w2 or t1 == t2 or t1 == w2:
-            return 100.0
+            return 1.0, 100.0
 
         vec_a = self.get_vector(word)
         dot = float(np.dot(vec_a, target_vector))
-        return self._scale_similarity(dot)
+        return dot, self._scale_similarity(dot)
 
-    def calculate_similarity(self, word_a: str, word_b: str) -> float:
+    def calculate_dot_and_similarity(self, word_a: str, word_b: str) -> tuple[float, float]:
+        """Returns (raw_dot, scaled_similarity)."""
         w1 = word_a.strip().lower()
         w2 = word_b.strip().lower()
         t1 = self.translate_to_korean(w1)
         t2 = self.translate_to_korean(w2)
 
         if w1 == w2 or t1 == t2 or t1 == w2:
-            return 100.0
+            return 1.0, 100.0
 
         vec_a = self.get_vector(word_a)
         vec_b = self.get_vector(word_b)
         dot = float(np.dot(vec_a, vec_b))
-        return self._scale_similarity(dot)
+        return dot, self._scale_similarity(dot)
+
+    def calculate_similarity_to_target_vector(self, word: str, target_vector: np.ndarray, target_word: str) -> float:
+        """Ultra-fast O(1) similarity calculation using pre-normalized target vector."""
+        _, sim = self.calculate_dot_and_similarity_to_target_vector(word, target_vector, target_word)
+        return sim
+
+    def calculate_similarity(self, word_a: str, word_b: str) -> float:
+        _, sim = self.calculate_dot_and_similarity(word_a, word_b)
+        return sim
 
 embedding_service = EmbeddingService()

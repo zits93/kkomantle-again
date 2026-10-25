@@ -240,13 +240,9 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                             <span className={`px-1.5 py-0.2 rounded text-[11px] font-medium ${tierInfo.pillClass}`}>
                               {item.isAnswer
                                 ? '정답'
-                                : tierInfo.tier === 'top10'
-                                ? '초근접'
-                                : tierInfo.tier === 'top100'
-                                ? '매우가까움'
-                                : tierInfo.tier === 'top1000'
-                                ? '유사함'
-                                : '1000위밖'}
+                                : item.rank
+                                ? `${item.rank}등`
+                                : '1,000위 밖'}
                             </span>
                           );
                         })()}
@@ -265,7 +261,7 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                             : 'text-gray-400'
                         } ${selectedCell.col === 'F' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''}`}
                       >
-                        {item.rank ? `${item.rank}위` : '1000위 밖'}
+                        {item.rank ? `${item.rank}등` : '1,000위 밖'}
                       </td>
 
                       {/* G: Status */}

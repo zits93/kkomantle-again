@@ -25,7 +25,7 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
   if (isAnswer || rank === 1 || similarity >= 100) {
     return {
       tier: 'answer',
-      rankText: '#1 정답',
+      rankText: '1등 (정답)',
       tierLabel: '정답',
       pillClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
       barColor: 'bg-emerald-500',
@@ -37,8 +37,8 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
     const pct = Math.max(90, 100 - (rank - 1) * 1.0);
     return {
       tier: 'top10',
-      rankText: `#${rank}`,
-      tierLabel: '초근접',
+      rankText: `${rank}등`,
+      tierLabel: '최상위권',
       pillClass: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
       barColor: 'bg-rose-500',
       barWidthPercent: pct,
@@ -49,8 +49,8 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
     const pct = 90 - ((rank - 10) / 90) * 25;
     return {
       tier: 'top100',
-      rankText: `#${rank}`,
-      tierLabel: '매우 가까움',
+      rankText: `${rank}등`,
+      tierLabel: '상위권',
       pillClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
       barColor: 'bg-amber-500',
       barWidthPercent: pct,
@@ -61,8 +61,8 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
     const pct = 65 - ((rank - 100) / 900) * 35;
     return {
       tier: 'top1000',
-      rankText: `#${rank}`,
-      tierLabel: '유사함',
+      rankText: `${rank}등`,
+      tierLabel: '1,000위 내',
       pillClass: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700',
       barColor: 'bg-zinc-500 dark:bg-zinc-400',
       barWidthPercent: pct,
@@ -73,8 +73,8 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
   const coldWidth = Math.max(6, Math.min(25, similarity * 0.4));
   return {
     tier: 'cold',
-    rankText: '-',
-    tierLabel: '순위 밖 (<24.0점)',
+    rankText: '1,000위 밖',
+    tierLabel: '1,000위 밖',
     pillClass: 'bg-zinc-50 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800',
     barColor: 'bg-zinc-300 dark:bg-zinc-700',
     barWidthPercent: coldWidth,
@@ -315,9 +315,8 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
                   <span className="truncate">
                     {item.nickname} {isMe && '(나)'}
                   </span>
-                  <span className="text-[10px]">
-                    {tier.tierLabel}
-                    {item.rank && item.rank <= 1000 && ` (${item.rank}/1000)`}
+                  <span className="text-[10px] font-mono">
+                    {item.isAnswer ? '정답 완료' : item.rank && item.rank <= 1000 ? `${item.rank}등` : '1,000위 밖'}
                   </span>
                 </div>
               </div>

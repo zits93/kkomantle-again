@@ -103,7 +103,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             >
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-xs">채팅</span>
-                <span className="text-[10px] text-zinc-400 font-mono">({messages.length}/300)</span>
               </div>
 
               <div className="flex items-center space-x-1.5">

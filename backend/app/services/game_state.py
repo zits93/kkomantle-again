@@ -18,6 +18,8 @@ class GameState:
         self.round_id: str = f"round_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
         self.target_word: str = "인공지능"
         self.target_vector: Optional[np.ndarray] = None
+        self.round_ranks: Dict[str, int] = {}
+        self.round_top_dots: np.ndarray = np.array([], dtype=np.float32)
         self.round_start_time: float = time.time()
         self.solved_by: Optional[str] = None
         self.once_more_voters: Set[str] = set()
@@ -77,13 +79,16 @@ class GameState:
             conn.commit()
 
     def _sync_target_vector(self):
-        """Precompute and cache target vector for ultra-fast O(1) similarity evaluation."""
+        """Precompute and cache target vector, top 1000 ranks, and dot cutoffs for ultra-fast exact ranking."""
         if self.target_word:
             try:
                 self.target_vector = embedding_service.get_vector(self.target_word)
+                self.round_ranks, self.round_top_dots = embedding_service.precompute_top_ranks(self.target_word)
             except Exception as e:
-                print(f"Failed to sync target vector: {e}")
+                print(f"Failed to sync target vector and ranks: {e}")
                 self.target_vector = None
+                self.round_ranks = {}
+                self.round_top_dots = np.array([], dtype=np.float32)
 
     def _load_active_round(self):
         with self._get_connection() as conn:

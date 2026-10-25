@@ -110,15 +110,20 @@ async def websocket_endpoint(websocket: WebSocket):
                 connection_manager.update_nickname(conn_id, nickname)
                 user_service.confirm_user(nickname, client_ip)
 
+                top_dots = game_state.round_top_dots
+                top10_c = round(embedding_service._scale_similarity(float(top_dots[9])), 1) if len(top_dots) >= 10 else 58.0
+                top100_c = round(embedding_service._scale_similarity(float(top_dots[99])), 1) if len(top_dots) >= 100 else 45.0
+                top1000_c = round(embedding_service._scale_similarity(float(top_dots[-1])), 1) if len(top_dots) >= 1000 else 24.0
+
                 # Send initial snapshot to joining client
                 init_data = {
                     "type": "init",
                     "roundId": game_state.round_id,
                     "totalWords": len(word_service.words_pool),
                     "rankCutoffs": {
-                        "top10": 58.0,
-                        "top100": 45.0,
-                        "top1000": 24.0
+                        "top10": top10_c,
+                        "top100": top100_c,
+                        "top1000": top1000_c
                     },
                     "activeUsers": connection_manager.get_user_list(),
                     "voteState": {
@@ -191,13 +196,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 clean_word = norm_res["word"]
                 notice = norm_res.get("notice")
 
-                # 2. Non-blocking parallel vector evaluation with precomputed target vector
+                # 2. Non-blocking parallel vector evaluation with precomputed target vector and exact top 1000 ranks
                 eval_result = await asyncio.to_thread(
                     word_service.evaluate_guess_fast,
                     clean_word,
                     game_state.target_word,
                     game_state.target_vector,
-                    notice
+                    notice,
+                    game_state.round_ranks,
+                    game_state.round_top_dots
                 )
                 guess_item = game_state.record_guess(
                     user_id=conn_id,
