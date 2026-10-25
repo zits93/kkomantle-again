@@ -38,6 +38,7 @@ export const AppContent: React.FC = () => {
     hallOfFame,
     voteState,
     isConnected,
+    isHttpFallback,
     isAnswerRevealed,
     revealedWord,
     lastWinAlert,
@@ -95,15 +96,24 @@ export const AppContent: React.FC = () => {
         nickname={nickname}
         onChangeNickname={updateNickname}
         isConnected={isConnected}
+        isHttpFallback={isHttpFallback}
         onOpenServerSettings={() => setIsServerModalOpen(true)}
         onOpenNicknameModal={() => setIsNicknameModalOpen(true)}
       />
 
       {/* Persistent Offline Warning Banner when Disconnected */}
       {!isConnected && (
-        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center space-x-1.5 text-xs text-amber-700 dark:text-amber-400 font-medium">
-          <WifiOff className="w-3.5 h-3.5 shrink-0 opacity-80" />
-          <span>서버와 연결이 끊어졌습니다. 단어는 현재 브라우저에만 저장되며 실시간 기능이 제한됩니다.</span>
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 font-medium">
+          <div className="flex items-center space-x-1.5 min-w-0">
+            <WifiOff className="w-3.5 h-3.5 shrink-0 opacity-80" />
+            <span className="truncate">서버와 연결이 끊어졌습니다 (사내망 프록시/방화벽 차단).</span>
+          </div>
+          <button
+            onClick={() => setIsServerModalOpen(true)}
+            className="shrink-0 ml-2 px-2.5 py-1 rounded-lg bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/30 text-amber-800 dark:text-amber-300 font-semibold cursor-pointer text-[11px] transition active:scale-95 shadow-xs motion-reduce:transform-none"
+          >
+            연결 진단 / 서버 설정
+          </button>
         </div>
       )}
 

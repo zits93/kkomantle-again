@@ -113,6 +113,7 @@ export const useGameSocket = (backendUrl?: string) => {
   });
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isHttpFallback, setIsHttpFallback] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [revealedWord, setRevealedWord] = useState<string>('');
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
@@ -227,59 +228,101 @@ export const useGameSocket = (backendUrl?: string) => {
     }
   }, [nickname, saveAllGuesses, saveMyGuesses]);
 
-  // Initial REST fetch for real server state (game-state & hall-of-fame)
-  useEffect(() => {
-    const fetchServerState = async () => {
-      try {
-        const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
-        const baseHttp = `${isSecure ? 'https://' : 'http://'}${serverHost}`;
-        const headers = { 'ngrok-skip-browser-warning': '1' };
+  const getBaseHttpUrl = useCallback(() => {
+    const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
+    return `${isSecure ? 'https://' : 'http://'}${serverHost}`;
+  }, [serverHost]);
 
-        // 1. Fetch Hall of Fame
-        const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`, { headers });
-        if (hofRes.ok) {
-          const data = await hofRes.json();
-          if (Array.isArray(data)) {
-            setHallOfFame(data);
-            localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
-          }
-        }
+  // Initial & periodic REST fetch for real server state (game-state, chat & hall-of-fame)
+  const fetchServerState = useCallback(async () => {
+    try {
+      const baseHttp = getBaseHttpUrl();
+      const headers = { 'ngrok-skip-browser-warning': '1' };
 
-        // 2. Fetch Active Game State & All Guesses for current round
-        const stateRes = await fetch(`${baseHttp}/api/game-state`, { headers });
-        if (stateRes.ok) {
-          const gameState = await stateRes.json();
-          if (gameState.roundId) {
-            setRoundId(gameState.roundId);
-            localStorage.setItem('kkomantle_round_id', gameState.roundId);
-          }
-          if (Array.isArray(gameState.allGuesses)) {
-            saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
-          }
+      // 1. Fetch Hall of Fame
+      const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`, { headers });
+      if (hofRes.ok) {
+        const data = await hofRes.json();
+        if (Array.isArray(data)) {
+          setHallOfFame(data);
+          localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
         }
-      } catch {
-        // Fallback to local storage (already loaded in useState initializers)
       }
-    };
 
+      // 2. Fetch Active Game State & All Guesses for current round
+      const stateRes = await fetch(`${baseHttp}/api/game-state`, { headers });
+      if (stateRes.ok) {
+        const gameState = await stateRes.json();
+        if (gameState.roundId) {
+          setRoundId(gameState.roundId);
+          localStorage.setItem('kkomantle_round_id', gameState.roundId);
+        }
+        if (gameState.totalWords) {
+          setGameStats({
+            totalWords: gameState.totalWords,
+            top1000Cutoff: gameState.rankCutoffs?.top1000 ?? 24.0,
+            top100Cutoff: gameState.rankCutoffs?.top100 ?? 45.0,
+            top10Cutoff: gameState.rankCutoffs?.top10 ?? 58.0,
+          });
+        }
+        if (Array.isArray(gameState.allGuesses)) {
+          saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
+        }
+      }
+
+      // 3. Fetch Recent Chat
+      const chatRes = await fetch(`${baseHttp}/api/chat`, { headers });
+      if (chatRes.ok) {
+        const chatData = await chatRes.json();
+        if (Array.isArray(chatData)) {
+          setChatMessages(chatData);
+          try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(chatData)); } catch {}
+        }
+      }
+    } catch {
+      // Fallback to local storage (already loaded in useState initializers)
+    }
+  }, [getBaseHttpUrl, saveAllGuesses]);
+
+  useEffect(() => {
     fetchServerState();
-  }, [serverHost, saveAllGuesses]);
+  }, [fetchServerState]);
 
-  // WebSocket connection management
+  // WebSocket connection management with automatic HTTP REST fallback for corporate networks
   useEffect(() => {
     const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
     const wsUrl = `${isSecure ? 'wss://' : 'ws://'}${serverHost}/ws`;
 
     let ws: WebSocket;
     let retryTimer: NodeJS.Timeout;
+    let isCleanedUp = false;
+
+    const testHttpFallback = async () => {
+      try {
+        const baseHttp = getBaseHttpUrl();
+        const res = await fetch(`${baseHttp}/api/health`, { headers: { 'ngrok-skip-browser-warning': '1' } });
+        if (res.ok && !isCleanedUp) {
+          setIsConnected(true);
+          setIsHttpFallback(true);
+          return;
+        }
+      } catch {}
+      if (!isCleanedUp) {
+        setIsConnected(false);
+        setIsHttpFallback(false);
+      }
+    };
 
     const connect = () => {
+      if (isCleanedUp) return;
       try {
         ws = new WebSocket(wsUrl);
         socketRef.current = ws;
 
         ws.onopen = () => {
+          if (isCleanedUp) return;
           setIsConnected(true);
+          setIsHttpFallback(false);
           ws.send(JSON.stringify({ type: 'join', nickname }));
         };
 
@@ -293,26 +336,40 @@ export const useGameSocket = (backendUrl?: string) => {
         };
 
         ws.onclose = () => {
-          setIsConnected(false);
-          retryTimer = setTimeout(connect, 4000);
+          if (isCleanedUp) return;
+          testHttpFallback();
+          retryTimer = setTimeout(connect, 5000);
         };
 
         ws.onerror = () => {
-          setIsConnected(false);
+          if (isCleanedUp) return;
+          testHttpFallback();
           ws.close();
         };
       } catch {
-        setIsConnected(false);
+        testHttpFallback();
       }
     };
 
     connect();
 
     return () => {
+      isCleanedUp = true;
       clearTimeout(retryTimer);
       if (socketRef.current) socketRef.current.close();
     };
-  }, [serverHost]);
+  }, [serverHost, nickname, getBaseHttpUrl]);
+
+  // HTTP Polling fallback timer (syncs every 3s if corporate network blocks WebSocket)
+  useEffect(() => {
+    if (!isHttpFallback) return;
+
+    const pollTimer = setInterval(() => {
+      fetchServerState();
+    }, 3000);
+
+    return () => clearInterval(pollTimer);
+  }, [isHttpFallback, fetchServerState]);
 
   // Process incoming WS data
   const handleIncomingMessage = (data: any) => {
@@ -464,6 +521,53 @@ export const useGameSocket = (backendUrl?: string) => {
       return null;
     }
 
+    if (isHttpFallback) {
+      (async () => {
+        try {
+          const baseHttp = getBaseHttpUrl();
+          const res = await fetch(`${baseHttp}/api/guess`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': '1'
+            },
+            body: JSON.stringify({ word: trimmed, nickname })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.guess) {
+              const guessItem: GuessItem = { ...data.guess, isSelf: true };
+              saveMyGuesses(prev => [guessItem, ...prev.filter(g => g.word !== trimmed)].sort((a,b) => b.similarity - a.similarity));
+              saveAllGuesses(prev => [guessItem, ...prev]);
+
+              if (data.isAnswer) {
+                confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+                sound.playWinFanfare();
+                setIsAnswerRevealed(true);
+                setRevealedWord(data.answerWord || '정답');
+              } else {
+                sound.playSimilarityTone(guessItem.similarity);
+              }
+
+              if (channelRef.current) {
+                channelRef.current.postMessage({
+                  type: 'SYNC_NEW_GUESS',
+                  guess: guessItem,
+                  roundId
+                });
+              }
+            } else if (data.error) {
+              setGuessError(data.error);
+              setTimeout(() => setGuessError(null), 3000);
+            }
+          }
+        } catch (e) {
+          console.error('HTTP guess error:', e);
+        }
+      })();
+      return null;
+    }
+
     // Offline / Standalone Mock fallback
     let cleanWord = trimmed.replace(/[^가-힣a-zA-Z0-9]/g, '');
     let notice: string | undefined = undefined;
@@ -548,6 +652,21 @@ export const useGameSocket = (backendUrl?: string) => {
       return;
     }
 
+    if (isHttpFallback) {
+      (async () => {
+        try {
+          const baseHttp = getBaseHttpUrl();
+          await fetch(`${baseHttp}/api/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+            body: JSON.stringify({ nickname })
+          });
+          fetchServerState();
+        } catch {}
+      })();
+      return;
+    }
+
     // Standalone fallback
     const prevTarget = secretWordRef.current;
     const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
@@ -610,6 +729,26 @@ export const useGameSocket = (backendUrl?: string) => {
       return;
     }
 
+    if (isHttpFallback) {
+      (async () => {
+        try {
+          const baseHttp = getBaseHttpUrl();
+          const res = await fetch(`${baseHttp}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+            body: JSON.stringify({ text: trimmed, nickname })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.message) {
+              setChatMessages(prev => [...prev.slice(-299), { ...data.message, isSelf: true }]);
+            }
+          }
+        } catch {}
+      })();
+      return;
+    }
+
     // Standalone fallback: normal chat message
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -644,6 +783,7 @@ export const useGameSocket = (backendUrl?: string) => {
     hallOfFame,
     voteState,
     isConnected,
+    isHttpFallback,
     isAnswerRevealed,
     revealedWord,
     roundId,
