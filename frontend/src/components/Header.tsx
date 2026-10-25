@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Clean Light & Dark Minimalist Header
   return (
     <header className="w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 transition-colors">
-      <div className="max-w-4xl mx-auto px-4 py-2.5 sm:py-3.5 flex items-center justify-between gap-3">
+      <div className="max-w-2xl mx-auto px-4 py-2.5 sm:py-3.5 flex items-center justify-between gap-3">
         {/* Brand Title */}
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">

@@ -98,7 +98,7 @@ export const AppContent: React.FC = () => {
 
       {/* Winner Notification Banner */}
       {lastWinAlert && (
-        <div className="w-full max-w-xl mx-auto my-3 px-4">
+        <div className="w-full max-w-2xl mx-auto my-3 px-4">
           <div className={`p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm font-medium ${
             lastWinAlert.isSelf
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
@@ -121,7 +121,7 @@ export const AppContent: React.FC = () => {
 
       {/* Previous Round Answer Banner on Round Reset */}
       {previousRoundAnswer && (
-        <div className="w-full max-w-xl mx-auto my-2 px-4">
+        <div className="w-full max-w-2xl mx-auto my-2 px-4">
           <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 flex items-center justify-between text-xs sm:text-sm font-medium">
             <span>
               🎯 이전 라운드 정답: <b>[{previousRoundAnswer}]</b> (새로운 단어가 출제되었습니다!)
