@@ -98,6 +98,13 @@ export const AppContent: React.FC = () => {
         onOpenNicknameModal={() => setIsNicknameModalOpen(true)}
       />
 
+      {/* Persistent Offline Warning Banner when Disconnected */}
+      {!isConnected && (
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center text-xs text-amber-700 dark:text-amber-400 font-medium">
+          ⚠️ 서버와 연결이 끊어졌습니다. 단어는 현재 브라우저에만 저장되며 실시간 기능이 제한됩니다.
+        </div>
+      )}
+
       {/* Excel Ribbon Toolbar in Excel Mode */}
       {theme === 'excel' && <ExcelRibbon />}
 

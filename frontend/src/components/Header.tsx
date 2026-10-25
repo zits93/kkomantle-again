@@ -113,9 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Window Control Buttons */}
           <div className="flex items-center pl-2 border-l border-emerald-700/60 text-emerald-100 text-xs">
-            <button onClick={toggleExcel} className="px-2 py-0.5 hover:bg-emerald-800 transition" title="최소화">─</button>
-            <button onClick={toggleExcel} className="px-2 py-0.5 hover:bg-emerald-800 transition" title="이전 크기로 복원">□</button>
-            <button onClick={toggleExcel} className="px-2.5 py-0.5 hover:bg-red-600 transition" title="닫기 (일반 모드로 복귀)">✕</button>
+            <button type="button" className="px-2 py-0.5 hover:bg-emerald-800 transition opacity-60 cursor-default" title="지원되지 않는 기능입니다">─</button>
+            <button type="button" className="px-2 py-0.5 hover:bg-emerald-800 transition opacity-60 cursor-default" title="지원되지 않는 기능입니다">□</button>
+            <button type="button" onClick={toggleExcel} className="px-2.5 py-0.5 hover:bg-red-600 transition" title="닫기 (일반 모드로 복귀)">✕</button>
           </div>
         </div>
       </header>
@@ -136,6 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenServerSettings}
               className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
               title={isConnected ? '서버 연결됨 (클릭하여 설정)' : '오프라인 모드 (클릭하여 설정)'}
+              aria-label={isConnected ? '서버 연결됨. 설정 열기' : '오프라인 모드. 설정 열기'}
             >
               <span className={`block w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
             </button>

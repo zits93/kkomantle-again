@@ -35,30 +35,25 @@ export const ExcelRibbon: React.FC = () => {
       </div>
 
       {/* 2. Ribbon Action Toolbar */}
-      <div className="flex items-center space-x-3 px-3 py-1.5 overflow-x-auto text-[11px] text-gray-700 bg-white">
+      <div className="flex items-center space-x-3 px-3 py-1.5 overflow-x-auto text-[11px] text-gray-700 bg-white select-none">
         {/* Font Group */}
         <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <select className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs" defaultValue="맑은 고딕">
-                <option>맑은 고딕</option>
-                <option>Calibri</option>
-                <option>Aptos</option>
-              </select>
-              <select className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs" defaultValue="11">
-                <option>9</option>
-                <option>10</option>
-                <option>11</option>
-                <option>12</option>
-              </select>
+              <div className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs text-gray-700 w-20 truncate">
+                맑은 고딕
+              </div>
+              <div className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs text-gray-700 w-10 text-center">
+                11
+              </div>
             </div>
             <div className="flex items-center space-x-0.5">
-              <button className="p-1 hover:bg-gray-200 rounded font-bold"><Bold className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded italic"><Italic className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded underline"><Underline className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded"><Table className="w-3 h-3 text-gray-500" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded text-amber-500"><Palette className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded text-red-600 font-bold"><Type className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded font-bold cursor-default" title="굵게"><Bold className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded italic cursor-default" title="기울임꼴"><Italic className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded underline cursor-default" title="밑줄"><Underline className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded cursor-default" title="테두리"><Table className="w-3 h-3 text-gray-500" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded text-amber-500 cursor-default" title="채우기 색"><Palette className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded text-red-600 font-bold cursor-default" title="글꼴 색"><Type className="w-3 h-3" /></button>
             </div>
           </div>
         </div>
@@ -67,11 +62,11 @@ export const ExcelRibbon: React.FC = () => {
         <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <button className="p-1 hover:bg-gray-200 rounded"><AlignLeft className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded"><AlignCenter className="w-3 h-3" /></button>
-              <button className="p-1 hover:bg-gray-200 rounded"><AlignRight className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded cursor-default" title="왼쪽 맞춤"><AlignLeft className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded cursor-default" title="가운데 맞춤"><AlignCenter className="w-3 h-3" /></button>
+              <button type="button" className="p-1 hover:bg-gray-200 rounded cursor-default" title="오른쪽 맞춤"><AlignRight className="w-3 h-3" /></button>
             </div>
-            <button className="flex items-center space-x-1 text-[10px] px-1.5 py-0.5 hover:bg-gray-200 rounded border border-gray-200">
+            <button type="button" className="flex items-center space-x-1 text-[10px] px-1.5 py-0.5 hover:bg-gray-200 rounded border border-gray-200 cursor-default">
               <SplitSquareVertical className="w-3 h-3" />
               <span>병합하고 가운데 맞춤</span>
             </button>
@@ -81,24 +76,21 @@ export const ExcelRibbon: React.FC = () => {
         {/* Number Group */}
         <div className="flex items-center space-x-2 border-r border-gray-300 pr-3">
           <div className="flex flex-col space-y-1">
-            <select className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs" defaultValue="백분율">
-              <option>일반</option>
-              <option>숫자</option>
-              <option>통화</option>
-              <option>백분율</option>
-            </select>
+            <div className="border border-gray-300 rounded px-1.5 py-0.5 bg-white text-xs text-gray-700 w-16 text-center">
+              백분율
+            </div>
             <div className="flex items-center space-x-1">
-              <button className="px-1.5 py-0.5 hover:bg-gray-200 rounded font-mono font-bold text-xs">%</button>
-              <button className="px-1.5 py-0.5 hover:bg-gray-200 rounded font-mono font-bold text-xs">,</button>
-              <button className="px-1 py-0.5 hover:bg-gray-200 rounded font-mono text-[10px]">.0</button>
-              <button className="px-1 py-0.5 hover:bg-gray-200 rounded font-mono text-[10px]">.00</button>
+              <button type="button" className="px-1.5 py-0.5 hover:bg-gray-200 rounded font-mono font-bold text-xs cursor-default">%</button>
+              <button type="button" className="px-1.5 py-0.5 hover:bg-gray-200 rounded font-mono font-bold text-xs cursor-default">,</button>
+              <button type="button" className="px-1 py-0.5 hover:bg-gray-200 rounded font-mono text-[10px] cursor-default">.0</button>
+              <button type="button" className="px-1 py-0.5 hover:bg-gray-200 rounded font-mono text-[10px] cursor-default">.00</button>
             </div>
           </div>
         </div>
 
         {/* Styles Group */}
         <div className="flex items-center space-x-1">
-          <button className="px-2 py-1 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded text-xs flex items-center space-x-1">
+          <button type="button" className="px-2 py-1 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded text-xs flex items-center space-x-1 cursor-default">
             <span>조건부 서식</span>
             <ChevronDown className="w-3 h-3 text-gray-500" />
           </button>
