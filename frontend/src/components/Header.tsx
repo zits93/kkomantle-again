@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { User, HallOfFameEntry, VoteState } from '../types/game';
 import { Users, Trophy, RotateCcw, Moon, Sun, FileSpreadsheet, Monitor, Edit2 } from 'lucide-react';
+import { getExcelWeekTitle } from '../utils/excelTitle';
 
 interface HeaderProps {
   activeUsers: User[];
@@ -50,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center space-x-3">
           <FileSpreadsheet className="w-4 h-4" />
           <span className="font-semibold text-xs tracking-wide">
-            꼬맨틀_한번더_업무일지.xlsx - Excel
+            {getExcelWeekTitle()}
           </span>
           <button
             onClick={onOpenServerSettings}

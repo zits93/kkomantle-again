@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ThemeMode, ThemePreference } from '../types/game';
+import { getExcelWeekTitle } from '../utils/excelTitle';
 
 interface ThemeContextType {
   theme: ThemeMode;               // Effective active mode ('light' | 'dark' | 'excel')
@@ -67,13 +68,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (effectiveTheme === 'excel') {
       root.classList.add('excel-mode');
       root.classList.remove('dark');
+      document.title = getExcelWeekTitle();
     } else if (effectiveTheme === 'dark') {
       root.classList.remove('excel-mode');
       root.classList.add('dark');
+      document.title = '꼬맨틀 한번더';
       setPreviousNonExcelTheme('dark');
     } else {
       root.classList.remove('excel-mode');
       root.classList.remove('dark');
+      document.title = '꼬맨틀 한번더';
       setPreviousNonExcelTheme('light');
     }
   }, [effectiveTheme, preference]);
