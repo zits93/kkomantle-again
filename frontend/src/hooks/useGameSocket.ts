@@ -12,7 +12,41 @@ const FALLBACK_SECRET_WORDS = [
   '사랑하다', '이해하다', '빠르게', '천천히', '조용히', '반짝반짝', '다정하게', '영원히', '마침내', '가득'
 ];
 
+export const resolveServerHost = (): string => {
+  if (typeof window === 'undefined') return '';
+  const params = new URLSearchParams(window.location.search);
+  const param = params.get('server') || params.get('ws');
+  if (param) {
+    const clean = param.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/ws\/?$/, '');
+    localStorage.setItem('kkomantle_backend_server', clean);
+    return clean;
+  }
+  const saved = localStorage.getItem('kkomantle_backend_server');
+  if (saved) return saved;
+
+  const envWsUrl = (import.meta as any).env?.VITE_WS_URL;
+  if (envWsUrl) {
+    return envWsUrl.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/ws\/?$/, '');
+  }
+
+  if (window.location.hostname.includes('github.io')) {
+    return '7b27-211-177-123-232.ngrok-free.app';
+  }
+
+  return `${window.location.hostname}:8000`;
+};
+
 export const useGameSocket = (backendUrl?: string) => {
+  const [serverHost, setServerHostState] = useState<string>(() => backendUrl || resolveServerHost());
+
+  const updateServerHost = (newHost: string) => {
+    const clean = newHost.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/ws\/?$/, '').trim();
+    if (clean) {
+      localStorage.setItem('kkomantle_backend_server', clean);
+      setServerHostState(clean);
+    }
+  };
+
   const [nickname, setNickname] = useState<string>(() => {
     return localStorage.getItem('kkomantle_nickname') || `탐험가_${Math.floor(1000 + Math.random() * 9000)}`;
   });
@@ -183,12 +217,12 @@ export const useGameSocket = (backendUrl?: string) => {
   useEffect(() => {
     const fetchServerState = async () => {
       try {
-        const baseHttp = backendUrl
-          ? backendUrl.replace('ws://', 'http://').replace('wss://', 'https://')
-          : (window.location.protocol === 'https:' ? window.location.origin : `http://${window.location.hostname}:8000`);
+        const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
+        const baseHttp = `${isSecure ? 'https://' : 'http://'}${serverHost}`;
+        const headers = { 'ngrok-skip-browser-warning': '1' };
 
         // 1. Fetch Hall of Fame
-        const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`);
+        const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`, { headers });
         if (hofRes.ok) {
           const data = await hofRes.json();
           if (Array.isArray(data)) {
@@ -198,7 +232,7 @@ export const useGameSocket = (backendUrl?: string) => {
         }
 
         // 2. Fetch Active Game State & All Guesses for current round
-        const stateRes = await fetch(`${baseHttp}/api/game-state`);
+        const stateRes = await fetch(`${baseHttp}/api/game-state`, { headers });
         if (stateRes.ok) {
           const gameState = await stateRes.json();
           if (gameState.roundId) {
@@ -215,22 +249,19 @@ export const useGameSocket = (backendUrl?: string) => {
     };
 
     fetchServerState();
-  }, [backendUrl, saveAllGuesses]);
+  }, [serverHost, saveAllGuesses]);
 
   // WebSocket connection management
   useEffect(() => {
-    const defaultWsUrl = backendUrl || (
-      window.location.protocol === 'https:'
-        ? `wss://${window.location.host}/ws`
-        : `ws://${window.location.hostname}:8000/ws`
-    );
+    const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
+    const wsUrl = `${isSecure ? 'wss://' : 'ws://'}${serverHost}/ws`;
 
     let ws: WebSocket;
     let retryTimer: NodeJS.Timeout;
 
     const connect = () => {
       try {
-        ws = new WebSocket(defaultWsUrl);
+        ws = new WebSocket(wsUrl);
         socketRef.current = ws;
 
         ws.onopen = () => {
@@ -267,7 +298,7 @@ export const useGameSocket = (backendUrl?: string) => {
       clearTimeout(retryTimer);
       if (socketRef.current) socketRef.current.close();
     };
-  }, [backendUrl]);
+  }, [serverHost]);
 
   // Process incoming WS data
   const handleIncomingMessage = (data: any) => {
@@ -624,5 +655,7 @@ export const useGameSocket = (backendUrl?: string) => {
     sendChatMessage,
     setLastWinAlert,
     setPreviousRoundAnswer,
+    serverHost,
+    updateServerHost,
   };
 };

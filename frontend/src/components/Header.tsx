@@ -12,6 +12,7 @@ interface HeaderProps {
   nickname: string;
   onChangeNickname: (newNick: string) => void;
   isConnected: boolean;
+  onOpenServerSettings?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   nickname,
   onChangeNickname,
   isConnected,
+  onOpenServerSettings,
 }) => {
   const { theme, toggleTheme, toggleExcel } = useTheme();
   const [showUsersPopover, setShowUsersPopover] = useState(false);
@@ -49,9 +51,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-semibold text-xs tracking-wide">
             꼬맨틀_한번더_업무일지.xlsx - Excel
           </span>
-          <span className={`text-[10px] px-2 py-0.2 rounded font-mono ${isConnected ? 'bg-emerald-700' : 'bg-amber-700'}`}>
+          <button
+            onClick={onOpenServerSettings}
+            className={`text-[10px] px-2 py-0.2 rounded font-mono cursor-pointer hover:opacity-90 ${isConnected ? 'bg-emerald-700' : 'bg-amber-700'}`}
+            title="서버 연결 설정"
+          >
             {isConnected ? '온라인 연결됨' : '로컬 모드'}
-          </span>
+          </button>
         </div>
 
         <div className="flex items-center space-x-3 text-xs">
@@ -124,10 +130,16 @@ export const Header: React.FC<HeaderProps> = ({
             <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               꼬맨틀 한번더
             </h1>
-            <span
-              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}
-              title={isConnected ? '서버 연결됨' : '로컬 모드'}
-            />
+            <button
+              onClick={onOpenServerSettings}
+              className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer text-[10px]"
+              title={isConnected ? '실시간 서버 연결됨 (클릭하여 설정)' : '오프라인 모드 (클릭하여 서버 연결)'}
+            >
+              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span className="text-zinc-500 dark:text-zinc-400 font-medium hidden sm:inline">
+                {isConnected ? '온라인' : '오프라인'}
+              </span>
+            </button>
           </div>
 
           {/* Nickname pill */}

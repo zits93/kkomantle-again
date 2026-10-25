@@ -10,12 +10,14 @@ import { ChatWidget } from './components/ChatWidget';
 import { HallOfFameModal } from './components/HallOfFameModal';
 import { ActiveUsersModal } from './components/ActiveUsersModal';
 import { MobileBottomBar } from './components/MobileBottomBar';
+import { ServerSettingsModal } from './components/ServerSettingsModal';
 
 export const AppContent: React.FC = () => {
   const { theme } = useTheme();
   const [isHallOfFameOpen, setIsHallOfFameOpen] = useState(false);
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
 
   const [lastReadChatId, setLastReadChatId] = useState<string>(() => {
     return localStorage.getItem('kkomantle_last_read_id') || '';
@@ -40,6 +42,8 @@ export const AppContent: React.FC = () => {
     sendChatMessage,
     setLastWinAlert,
     setPreviousRoundAnswer,
+    serverHost,
+    updateServerHost,
   } = useGameSocket();
 
   // Compute unread count for bottom bar badge
@@ -84,6 +88,7 @@ export const AppContent: React.FC = () => {
         nickname={nickname}
         onChangeNickname={updateNickname}
         isConnected={isConnected}
+        onOpenServerSettings={() => setIsServerModalOpen(true)}
       />
 
       {/* Excel Ribbon Toolbar in Excel Mode */}
@@ -178,6 +183,15 @@ export const AppContent: React.FC = () => {
         onClose={() => setIsUsersModalOpen(false)}
         users={activeUsers}
         currentNickname={nickname}
+      />
+
+      {/* Server Connection & Multiplayer Sync Modal */}
+      <ServerSettingsModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        isConnected={isConnected}
+        currentServer={serverHost}
+        onSaveServer={updateServerHost}
       />
 
       {/* Mobile Bottom Navigation Bar (Hidden on desktop & Excel mode) */}
