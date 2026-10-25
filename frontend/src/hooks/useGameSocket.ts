@@ -36,6 +36,7 @@ export const useGameSocket = (backendUrl?: string) => {
   const [revealedWord, setRevealedWord] = useState<string>('');
   const [roundId, setRoundId] = useState<string>('round-1');
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
+  const [previousRoundAnswer, setPreviousRoundAnswer] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const secretWordRef = useRef<string>(FALLBACK_SECRET_WORDS[0]);
@@ -191,6 +192,9 @@ export const useGameSocket = (backendUrl?: string) => {
         setIsAnswerRevealed(false);
         setRevealedWord('');
         setVoteState(prev => ({ ...prev, votes: 0, hasVoted: false }));
+        if (data.previousAnswer) {
+          setPreviousRoundAnswer(data.previousAnswer);
+        }
         break;
 
       case 'chat_message':
@@ -299,7 +303,8 @@ export const useGameSocket = (backendUrl?: string) => {
     }
 
     // Standalone fallback
-    const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(secretWordRef.current) + 1) % FALLBACK_SECRET_WORDS.length;
+    const prevTarget = secretWordRef.current;
+    const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
     secretWordRef.current = FALLBACK_SECRET_WORDS[nextIdx];
     setRoundId(`round-${Date.now()}`);
     setMyGuesses([]);
@@ -307,11 +312,12 @@ export const useGameSocket = (backendUrl?: string) => {
     setIsAnswerRevealed(false);
     setRevealedWord('');
     setVoteState(prev => ({ ...prev, votes: 0, hasVoted: false }));
+    setPreviousRoundAnswer(prevTarget);
     setChatMessages(prev => [...prev, {
       id: `sys-${Date.now()}`,
-      type: 'system',
+      type: 'notice',
       sender: '시스템',
-      text: '새로운 단어로 교체되었습니다! 게임을 다시 시작합니다.',
+      text: `🔄 라운드 종료! 이전 정답은 [${prevTarget}] 였습니다. 새로운 단어로 시작합니다!`,
       timestamp: Date.now()
     }]);
   };
@@ -327,6 +333,26 @@ export const useGameSocket = (backendUrl?: string) => {
     }
 
     // Standalone fallback
+    if (type === 'answer_reveal') {
+      const prevTarget = secretWordRef.current;
+      const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
+      secretWordRef.current = FALLBACK_SECRET_WORDS[nextIdx];
+      setRoundId(`round-${Date.now()}`);
+      setMyGuesses([]);
+      setAllGuesses([]);
+      setIsAnswerRevealed(false);
+      setRevealedWord('');
+      setPreviousRoundAnswer(prevTarget);
+      setChatMessages(prev => [...prev, {
+        id: `sys-${Date.now()}`,
+        type: 'notice',
+        sender: '시스템',
+        text: `📢 ${nickname}님의 요청으로 정답이 공개되었습니다: [${prevTarget}] (새 단어로 교체됩니다)`,
+        timestamp: Date.now()
+      }]);
+      return;
+    }
+
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}-${Math.random()}`,
       type,
@@ -353,9 +379,11 @@ export const useGameSocket = (backendUrl?: string) => {
     revealedWord,
     roundId,
     lastWinAlert,
+    previousRoundAnswer,
     submitGuess,
     voteOnceMore,
     sendChatMessage,
     setLastWinAlert,
+    setPreviousRoundAnswer,
   };
 };

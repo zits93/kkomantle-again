@@ -26,10 +26,12 @@ export const AppContent: React.FC = () => {
     isAnswerRevealed,
     revealedWord,
     lastWinAlert,
+    previousRoundAnswer,
     submitGuess,
     voteOnceMore,
     sendChatMessage,
     setLastWinAlert,
+    setPreviousRoundAnswer,
   } = useGameSocket();
 
   const handleWordSubmit = (word: string) => {
@@ -80,6 +82,23 @@ export const AppContent: React.FC = () => {
               className="ml-3 px-2 py-0.5 rounded text-xs border border-current opacity-70 hover:opacity-100"
             >
               닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Previous Round Answer Banner on Round Reset */}
+      {previousRoundAnswer && (
+        <div className="w-full max-w-xl mx-auto my-2 px-4">
+          <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 flex items-center justify-between text-xs sm:text-sm font-medium">
+            <span>
+              🎯 이전 라운드 정답: <b>[{previousRoundAnswer}]</b> (새로운 단어가 출제되었습니다!)
+            </span>
+            <button
+              onClick={() => setPreviousRoundAnswer(null)}
+              className="ml-3 px-2 py-0.5 rounded text-xs border border-current opacity-70 hover:opacity-100"
+            >
+              확인
             </button>
           </div>
         </div>

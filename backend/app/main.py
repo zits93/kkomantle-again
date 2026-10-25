@@ -149,19 +149,21 @@ async def websocket_endpoint(websocket: WebSocket):
                 vote_result = game_state.vote_once_more(conn_id, total_users)
 
                 if vote_result["should_reset"]:
-                    # Reset game with new secret word
-                    new_word = word_service.get_random_word(exclude=game_state.target_word)
+                    # Reveal previous answer to everyone and start new round
+                    prev_word = game_state.target_word
+                    new_word = word_service.get_random_word(exclude=prev_word)
                     game_state.set_target_word(new_word)
 
                     reset_msg = chat_service.add_message(
                         sender="시스템",
-                        text="🔄 투표 완료! 새로운 단어로 게임이 다시 시작됩니다.",
-                        msg_type="system"
+                        text=f"🔄 투표 완료! 이전 정답은 [{prev_word}] 였습니다. 새로운 단어로 라운드가 시작됩니다!",
+                        msg_type="notice"
                     )
                     await connection_manager.broadcast({"type": "chat_message", "message": reset_msg})
                     await connection_manager.broadcast({
                         "type": "round_reset",
-                        "roundId": game_state.round_id
+                        "roundId": game_state.round_id,
+                        "previousAnswer": prev_word
                     })
                 else:
                     # Broadcast vote progress
@@ -181,12 +183,21 @@ async def websocket_endpoint(websocket: WebSocket):
                 sub_type = payload.get("msgType", "chat")
 
                 if sub_type == "answer_reveal":
+                    prev_word = game_state.target_word
+                    new_word = word_service.get_random_word(exclude=prev_word)
+                    game_state.set_target_word(new_word)
+
                     reveal_msg = chat_service.add_message(
                         sender="시스템",
-                        text=f"📢 {nickname}님의 요청으로 정답이 공개되었습니다: [{game_state.target_word}]",
+                        text=f"📢 {nickname}님의 요청으로 정답이 공개되었습니다: [{prev_word}] (새로운 단어로 교체됩니다)",
                         msg_type="notice"
                     )
                     await connection_manager.broadcast({"type": "chat_message", "message": reveal_msg})
+                    await connection_manager.broadcast({
+                        "type": "round_reset",
+                        "roundId": game_state.round_id,
+                        "previousAnswer": prev_word
+                    })
                 elif text:
                     msg = chat_service.add_message(sender=nickname, text=text, msg_type="chat")
                     await connection_manager.broadcast({"type": "chat_message", "message": msg})
