@@ -58,14 +58,14 @@ class WordService:
         rank: Optional[int] = None
         if is_answer:
             rank = 1
-        elif similarity >= 98.0:
-            rank = max(2, min(10, int((100.0 - similarity) * 4.5) + 2))
-        elif similarity >= 90.0:
-            rank = 11 + int(((98.0 - similarity) / 8.0) * 89)
-        elif similarity >= 80.0:
-            rank = 101 + int(((90.0 - similarity) / 10.0) * 199)
-        elif similarity >= 68.0:
-            rank = 301 + int(((80.0 - similarity) / 12.0) * 699)
+        elif similarity >= 58.0:
+            rank = max(2, min(10, int((100.0 - similarity) / 4.2 * 8) + 2))
+        elif similarity >= 45.0:
+            rank = 11 + int(((58.0 - similarity) / 13.0) * 89)
+        elif similarity >= 35.0:
+            rank = 101 + int(((45.0 - similarity) / 10.0) * 199)
+        elif similarity >= 24.0:
+            rank = 301 + int(((35.0 - similarity) / 11.0) * 699)
         else:
             rank = None
 

@@ -19,6 +19,18 @@ class EmbeddingService:
         self._qwen_device = None
         self._qwen_initialized = False
 
+        # Load global mean vector for debiasing LLM representation degeneration (anisotropy)
+        mean_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "qwen_mean_vector.npy")
+        if os.path.exists(mean_path):
+            try:
+                self._mean_vector = np.load(mean_path)
+                print("✅ Loaded Qwen debiasing mean vector for realistic similarity distribution.")
+            except Exception as e:
+                print(f"Failed to load mean vector: {e}")
+                self._mean_vector = None
+        else:
+            self._mean_vector = None
+
     def load_vocab(self):
         if os.path.exists(self.words_file):
             try:
@@ -62,6 +74,8 @@ class EmbeddingService:
             with torch.no_grad():
                 outputs = self._qwen_model(**inputs)
                 emb = outputs.last_hidden_state.mean(dim=1).squeeze().float().cpu().numpy()
+                if self._mean_vector is not None:
+                    emb = emb - self._mean_vector
                 norm = np.linalg.norm(emb)
                 vec = emb / (norm + 1e-9)
                 self._qwen_cache[word] = vec
@@ -123,15 +137,18 @@ class EmbeddingService:
         vec_a = self.get_vector(word_a)
         vec_b = self.get_vector(word_b)
 
-        dot = np.dot(vec_a, vec_b)
-        norm_a = np.linalg.norm(vec_a)
-        norm_b = np.linalg.norm(vec_b)
+        dot = float(np.dot(vec_a, vec_b))
+        norm_a = float(np.linalg.norm(vec_a))
+        norm_b = float(np.linalg.norm(vec_b))
 
         if norm_a == 0 or norm_b == 0:
             return 0.0
 
         cosine = float(dot / (norm_a * norm_b))
-        scaled = max(0.0, min(99.9, ((cosine + 1.0) / 2.0) * 100.0))
-        return round(scaled, 1)
+        if cosine >= 0:
+            score = round(min(99.4, 15.0 + (cosine ** 0.8) * 85.0), 1)
+        else:
+            score = round(max(0.0, 15.0 + (cosine / 0.4) * 15.0), 1)
+        return score
 
 embedding_service = EmbeddingService()

@@ -472,14 +472,14 @@ export const useGameSocket = (backendUrl?: string) => {
       notice,
       rank: isAnswer
         ? 1
-        : similarity >= 98.0
-        ? Math.max(2, Math.min(10, Math.floor((100.0 - similarity) * 4.5) + 2))
-        : similarity >= 90.0
-        ? 11 + Math.floor(((98.0 - similarity) / 8.0) * 89)
-        : similarity >= 80.0
-        ? 101 + Math.floor(((90.0 - similarity) / 10.0) * 199)
-        : similarity >= 68.0
-        ? 301 + Math.floor(((80.0 - similarity) / 12.0) * 699)
+        : similarity >= 58.0
+        ? Math.max(2, Math.min(10, Math.floor(((100.0 - similarity) / 4.2) * 8) + 2))
+        : similarity >= 45.0
+        ? 11 + Math.floor(((58.0 - similarity) / 13.0) * 89)
+        : similarity >= 35.0
+        ? 101 + Math.floor(((45.0 - similarity) / 10.0) * 199)
+        : similarity >= 24.0
+        ? 301 + Math.floor(((35.0 - similarity) / 11.0) * 699)
         : undefined
     };
 
