@@ -20,7 +20,7 @@ class WordService:
             "사랑하다", "빠르게", "천천히", "조용히", "반짝반짝", "다정하게", "영원히", "마침내"
         ]
         self._load_100k_dictionary()
-        self.normalizer = KoreanNormalizer(self.valid_words_set, self.words_pool)
+        self.normalizer = KoreanNormalizer(self.valid_words_set, self.words_pool, self.curated_target_words)
 
     def _load_100k_dictionary(self):
         dict_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "korean_words_100k.txt")
@@ -74,7 +74,7 @@ class WordService:
             "similarity": 100.0 if is_answer else similarity,
             "rank": 1 if is_answer else rank,
             "isAnswer": is_answer,
-            "inDictionary": guess in self.valid_words_set,
+            "inDictionary": True,
             "notice": notice
         }
 

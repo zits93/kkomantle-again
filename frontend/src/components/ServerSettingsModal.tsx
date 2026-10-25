@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wifi, WifiOff, Copy, Check, RotateCcw, X, ExternalLink, Smartphone } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ServerSettingsModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
   };
 
   const defaultHost = (import.meta as any).env?.VITE_DEFAULT_SERVER_HOST || '';
+  const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose });
 
   const handleResetDefault = () => {
     if (!defaultHost) return;
@@ -58,7 +60,13 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs select-none">
-      <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="server-settings-title"
+        className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
+      >
         {/* Header */}
         <div className="px-5 py-3.5 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center space-x-2">
@@ -67,11 +75,12 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
             ) : (
               <WifiOff className="w-4 h-4 text-amber-500" />
             )}
-            <h3 className="font-bold text-sm tracking-tight">멀티플레이 서버 연결</h3>
+            <h2 id="server-settings-title" className="font-bold text-sm tracking-tight">멀티플레이 서버 연결</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition text-zinc-400"
+            aria-label="닫기"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition text-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>

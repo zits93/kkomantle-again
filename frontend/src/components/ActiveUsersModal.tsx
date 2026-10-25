@@ -1,6 +1,7 @@
 import React from 'react';
 import { User } from '../types/game';
 import { Users, X } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ActiveUsersModalProps {
   isOpen: boolean;
@@ -15,20 +16,29 @@ export const ActiveUsersModal: React.FC<ActiveUsersModalProps> = ({
   users,
   currentNickname,
 }) => {
+  const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose });
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs select-none">
-      <div className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="active-users-title"
+        className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
+      >
         {/* Header */}
         <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-zinc-500" />
-            <h3 className="font-bold text-xs tracking-tight">실시간 접속자 ({users.length}명)</h3>
+            <h2 id="active-users-title" className="font-bold text-xs tracking-tight">실시간 접속자 ({users.length}명)</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition text-zinc-400"
+            aria-label="닫기"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition text-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>

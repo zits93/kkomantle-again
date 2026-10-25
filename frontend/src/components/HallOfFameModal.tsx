@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { HallOfFameEntry } from '../types/game';
 import { Trophy, X, ShieldCheck } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface HallOfFameModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
   currentNickname,
 }) => {
   const { theme } = useTheme();
+  const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose });
   if (!isOpen) return null;
 
   const medals = ['🥇', '🥈', '🥉'];
@@ -24,6 +26,10 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hall-of-fame-title"
         className={`w-full max-w-md rounded-xl overflow-hidden shadow-2xl border transition-all ${
           theme === 'excel'
             ? 'bg-white border-gray-400 text-gray-800 font-sans'
@@ -40,11 +46,12 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
         >
           <div className="flex items-center space-x-2">
             <Trophy className="w-4 h-4 text-amber-500" />
-            <h2 className="font-bold text-sm tracking-tight">랭킹</h2>
+            <h2 id="hall-of-fame-title" className="font-bold text-sm tracking-tight">랭킹</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition text-zinc-400"
+            aria-label="닫기"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition text-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
