@@ -63,16 +63,19 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className={`relative p-3 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center ${
+          className={`relative shadow-lg transition-transform hover:scale-105 flex items-center justify-center ${
             theme === 'excel'
-              ? 'bg-excel-header text-white hover:bg-excel-headerDark'
-              : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+              ? 'px-3 py-1.5 rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 text-xs font-sans space-x-1.5'
+              : 'p-3 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
           }`}
           title="채팅 및 공지"
         >
-          <MessageSquare className="w-5 h-5" />
+          <MessageSquare className="w-4 h-4" />
+          {theme === 'excel' && <span className="font-medium">공동 메모</span>}
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white border-2 border-white dark:border-zinc-900 font-mono">
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white font-mono ${
+              theme === 'excel' ? 'ml-1' : 'absolute -top-1 -right-1 border-2 border-white dark:border-zinc-900'
+            }`}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

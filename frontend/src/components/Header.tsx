@@ -102,6 +102,13 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <span>일반 모드 (Alt+X)</span>
           </button>
+
+          {/* Window Control Buttons */}
+          <div className="flex items-center pl-2 border-l border-emerald-700/60 text-emerald-100 text-xs">
+            <button onClick={toggleExcel} className="px-2 py-0.5 hover:bg-emerald-800 transition" title="최소화">─</button>
+            <button onClick={toggleExcel} className="px-2 py-0.5 hover:bg-emerald-800 transition" title="이전 크기로 복원">□</button>
+            <button onClick={toggleExcel} className="px-2.5 py-0.5 hover:bg-red-600 transition" title="닫기 (일반 모드로 복귀)">✕</button>
+          </div>
         </div>
       </header>
     );

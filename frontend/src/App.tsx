@@ -3,6 +3,7 @@ import { useTheme } from './context/ThemeContext';
 import { useGameSocket } from './hooks/useGameSocket';
 import { Header } from './components/Header';
 import { ExcelRibbon } from './components/ExcelRibbon';
+import { ExcelView } from './components/ExcelView';
 import { WordInput } from './components/WordInput';
 import { GuessList } from './components/GuessList';
 import { ChatWidget } from './components/ChatWidget';
@@ -41,10 +42,10 @@ export const AppContent: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col ${
+    <div className={`flex flex-col ${
       theme === 'excel'
-        ? 'excel-mode bg-white text-gray-900'
-        : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100'
+        ? 'excel-mode bg-white text-gray-900 h-screen overflow-hidden'
+        : 'min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100'
     }`}>
       {/* Global Header */}
       <Header
@@ -85,17 +86,26 @@ export const AppContent: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col justify-start">
-        {/* Word Input */}
-        <WordInput onSubmit={handleWordSubmit} />
-
-        {/* Guesses List */}
-        <GuessList
+      {theme === 'excel' ? (
+        <ExcelView
           myGuesses={myGuesses}
           allGuesses={allGuesses}
           currentNickname={nickname}
+          onSubmitWord={handleWordSubmit}
         />
-      </main>
+      ) : (
+        <main className="flex-1 flex flex-col justify-start">
+          {/* Word Input */}
+          <WordInput onSubmit={handleWordSubmit} />
+
+          {/* Guesses List */}
+          <GuessList
+            myGuesses={myGuesses}
+            allGuesses={allGuesses}
+            currentNickname={nickname}
+          />
+        </main>
+      )}
 
       {/* Bottom Right Chat & Announcements */}
       <ChatWidget
