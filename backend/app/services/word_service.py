@@ -2,6 +2,7 @@ import os
 import random
 from typing import List, Dict, Any, Optional, Set
 from app.services.embedding_service import embedding_service
+from app.services.korean_normalizer import KoreanNormalizer
 
 class WordService:
     def __init__(self):
@@ -19,6 +20,7 @@ class WordService:
             "사랑하다", "빠르게", "천천히", "조용히", "반짝반짝", "다정하게", "영원히", "마침내"
         ]
         self._load_100k_dictionary()
+        self.normalizer = KoreanNormalizer(self.valid_words_set, self.words_pool)
 
     def _load_100k_dictionary(self):
         dict_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "korean_words_100k.txt")
@@ -40,12 +42,15 @@ class WordService:
     def is_valid_word(self, word: str) -> bool:
         return word.strip() in self.valid_words_set
 
+    def normalize_and_validate(self, raw_input: str) -> Dict[str, Any]:
+        """Normalize morphemes (조사/어미 복원) and auto-correct typos."""
+        return self.normalizer.normalize_and_validate(raw_input)
+
     def get_random_word(self, exclude: Optional[str] = None) -> str:
-        # Choose target secret word from well-known curated words for fun gameplay
         candidates = [w for w in self.curated_target_words if w != exclude]
         return random.choice(candidates if candidates else self.curated_target_words)
 
-    def evaluate_guess(self, guess: str, target: str) -> Dict[str, Any]:
+    def evaluate_guess(self, guess: str, target: str, notice: Optional[str] = None) -> Dict[str, Any]:
         guess = guess.strip()
         similarity = embedding_service.calculate_similarity(guess, target)
         is_answer = (guess == target)
@@ -65,7 +70,8 @@ class WordService:
             "similarity": 100.0 if is_answer else similarity,
             "rank": 1 if is_answer else rank,
             "isAnswer": is_answer,
-            "inDictionary": guess in self.valid_words_set
+            "inDictionary": guess in self.valid_words_set,
+            "notice": notice
         }
 
 word_service = WordService()

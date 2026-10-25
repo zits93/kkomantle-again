@@ -38,11 +38,11 @@ class EmbeddingService:
             from transformers import AutoTokenizer, AutoModel
             model_id = "Qwen/Qwen2.5-0.5B"
             self._qwen_tokenizer = AutoTokenizer.from_pretrained(model_id)
-            self._qwen_model = AutoModel.from_pretrained(model_id)
-            self._qwen_device = "mps" if torch.backends.mps.is_available() else "cpu"
+            self._qwen_model = AutoModel.from_pretrained(model_id, torch_dtype=torch.float32)
+            self._qwen_device = "cpu"
             self._qwen_model = self._qwen_model.to(self._qwen_device)
             self._qwen_model.eval()
-            print(f"✅ Qwen neural model loaded on {self._qwen_device}!")
+            print(f"✅ Qwen neural model loaded on {self._qwen_device} (float32)!")
         except Exception as e:
             print(f"Direct Qwen loading skipped: {e}")
             self._qwen_model = None

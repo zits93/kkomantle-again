@@ -18,6 +18,7 @@ export interface GuessItem {
   timestamp: number;
   isSelf: boolean;
   isAnswer?: boolean;
+  notice?: string;
 }
 
 export interface ChatMessage {

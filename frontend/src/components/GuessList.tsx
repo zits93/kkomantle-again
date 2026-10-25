@@ -116,7 +116,10 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                       </span>
                     </td>
                     <td className="border border-gray-300 px-4 py-1 font-semibold text-gray-900">
-                      {item.word}
+                      <span>{item.word}</span>
+                      {item.notice && (
+                        <span className="text-[10px] text-gray-400 font-normal ml-1.5 font-mono">({item.notice})</span>
+                      )}
                     </td>
                     <td className="border border-gray-300 px-3 py-1 text-right font-mono font-bold">
                       {item.similarity.toFixed(1)}%
@@ -210,6 +213,11 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                           {item.word}
                         </span>
+                        {item.notice && (
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.2 rounded border border-zinc-200 dark:border-zinc-700" title="단어 자동 정규화/교정">
+                            {item.notice}
+                          </span>
+                        )}
                         {item.isAnswer && (
                           <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 className="w-3 h-3" />

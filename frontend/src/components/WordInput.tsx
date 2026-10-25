@@ -5,9 +5,10 @@ import { CornerDownLeft } from 'lucide-react';
 interface WordInputProps {
   onSubmit: (word: string) => void;
   disabled?: boolean;
+  error?: string | null;
 }
 
-export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled }) => {
+export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error }) => {
   const { theme } = useTheme();
   const [word, setWord] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +78,12 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled }) => {
             <CornerDownLeft className="w-3.5 h-3.5" />
           </button>
         </div>
+        {error && (
+          <p className="text-xs text-rose-500 font-medium mt-1.5 px-2 animate-bounce flex items-center space-x-1">
+            <span>⚠️</span>
+            <span>{error}</span>
+          </p>
+        )}
       </form>
     </div>
   );

@@ -140,7 +140,8 @@ class GameState:
         client_ip: str,
         word: str,
         similarity: float,
-        rank: Optional[int] = None
+        rank: Optional[int] = None,
+        notice: Optional[str] = None
     ) -> Dict[str, Any]:
         is_answer = (word == self.target_word)
         guess_id = f"g_{int(time.time()*1000)}_{uuid.uuid4().hex[:4]}"
@@ -154,7 +155,8 @@ class GameState:
             "similarity": 100.0 if is_answer else similarity,
             "rank": 1 if is_answer else rank,
             "timestamp": now_ts,
-            "isAnswer": is_answer
+            "isAnswer": is_answer,
+            "notice": notice
         }
 
         # Persist to SQLite DB

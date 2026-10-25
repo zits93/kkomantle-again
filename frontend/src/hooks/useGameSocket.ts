@@ -47,6 +47,7 @@ export const useGameSocket = (backendUrl?: string) => {
     }
   };
 
+  const [guessError, setGuessError] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string>(() => {
     return localStorage.getItem('kkomantle_nickname') || `탐험가_${Math.floor(1000 + Math.random() * 9000)}`;
   });
@@ -402,6 +403,11 @@ export const useGameSocket = (backendUrl?: string) => {
         setVoteState(data.voteState);
         break;
 
+      case 'guess_error':
+        setGuessError(data.message || '사전에 없는 단어입니다.');
+        setTimeout(() => setGuessError(null), 3000);
+        break;
+
       default:
         break;
     }
@@ -438,19 +444,32 @@ export const useGameSocket = (backendUrl?: string) => {
     }
 
     // Offline / Standalone Mock fallback
+    let cleanWord = trimmed.replace(/[^가-힣a-zA-Z0-9]/g, '');
+    let notice: string | undefined = undefined;
+    const particles = ['으로', '에서', '에게', '한테', '부터', '까지', '보다', '처럼', '만큼', '은', '는', '이', '가', '을', '를', '에', '와', '과', '도', '로', '만'];
+    for (const p of particles) {
+      if (cleanWord.length > p.length + 1 && cleanWord.endsWith(p)) {
+        const stripped = cleanWord.slice(0, -p.length);
+        notice = `${trimmed} ➔ ${stripped}`;
+        cleanWord = stripped;
+        break;
+      }
+    }
+
     const target = secretWordRef.current;
-    const isAnswer = (trimmed === target);
-    const similarity = isAnswer ? 100.0 : calcFallbackSimilarity(trimmed, target);
+    const isAnswer = (cleanWord === target);
+    const similarity = isAnswer ? 100.0 : calcFallbackSimilarity(cleanWord, target);
 
     const guessItem: GuessItem = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       userId: 'local-me',
       nickname,
-      word: trimmed,
+      word: cleanWord,
       similarity,
       timestamp: Date.now(),
       isSelf: true,
       isAnswer,
+      notice,
       rank: similarity > 95 ? 1 : similarity > 80 ? 45 : similarity > 60 ? 320 : undefined
     };
 
@@ -657,5 +676,6 @@ export const useGameSocket = (backendUrl?: string) => {
     setPreviousRoundAnswer,
     serverHost,
     updateServerHost,
+    guessError,
   };
 };

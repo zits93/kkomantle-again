@@ -104,19 +104,33 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
 
             elif msg_type == "submit_guess":
-                word = payload.get("word", "").strip()
+                raw_word = payload.get("word", "").strip()
                 nickname = payload.get("nickname", "익명")
-                if not word:
+                if not raw_word:
                     continue
 
-                eval_result = word_service.evaluate_guess(word, game_state.target_word)
+                # 1. Morphological normalization & typo auto-correction
+                norm_res = word_service.normalize_and_validate(raw_word)
+                if not norm_res["isValid"]:
+                    await connection_manager.send_personal(conn_id, {
+                        "type": "guess_error",
+                        "word": raw_word,
+                        "message": norm_res.get("message", "사전에 없는 단어입니다.")
+                    })
+                    continue
+
+                clean_word = norm_res["word"]
+                notice = norm_res.get("notice")
+
+                eval_result = word_service.evaluate_guess(clean_word, game_state.target_word, notice=notice)
                 guess_item = game_state.record_guess(
                     user_id=conn_id,
                     nickname=nickname,
                     client_ip=client_ip,
-                    word=word,
+                    word=clean_word,
                     similarity=eval_result["similarity"],
-                    rank=eval_result.get("rank")
+                    rank=eval_result.get("rank"),
+                    notice=notice
                 )
 
                 if eval_result["isAnswer"]:
