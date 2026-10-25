@@ -201,14 +201,31 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                         {item.word}
                       </td>
 
-                      {/* D: Similarity */}
+                      {/* D: Similarity with Excel Data Bar */}
                       <td
                         onClick={() => handleCellClick('D', rowNum)}
-                        className={`border-r border-b border-gray-300 px-2 text-right font-mono font-semibold text-xs ${
-                          item.isAnswer ? 'text-emerald-700 bg-emerald-50' : 'text-gray-800'
-                        } ${selectedCell.col === 'D' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''}`}
+                        className={`border-r border-b border-gray-300 px-2 text-right font-mono text-xs relative overflow-hidden ${
+                          selectedCell.col === 'D' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''
+                        }`}
                       >
-                        {item.similarity.toFixed(1)}%
+                        {/* Conditional Formatting Data Bar */}
+                        <div
+                          className={`absolute inset-y-0.5 left-0.5 rounded-xs opacity-25 ${
+                            item.isAnswer
+                              ? 'bg-amber-500'
+                              : item.rank && item.rank <= 10
+                              ? 'bg-rose-500'
+                              : item.rank && item.rank <= 100
+                              ? 'bg-orange-500'
+                              : item.similarity >= 68
+                              ? 'bg-emerald-500'
+                              : 'bg-gray-400'
+                          }`}
+                          style={{ width: `${Math.min(98, Math.max(4, item.similarity))}%` }}
+                        />
+                        <span className="relative z-10 font-bold text-gray-800">
+                          {item.similarity.toFixed(1)}%
+                        </span>
                       </td>
 
                       {/* E: Verdict */}
@@ -218,27 +235,43 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                           selectedCell.col === 'E' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''
                         }`}
                       >
-                        <span className={`px-1.5 py-0.2 rounded text-[11px] ${
+                        <span className={`px-1.5 py-0.2 rounded text-[11px] font-medium ${
                           item.isAnswer
                             ? 'bg-emerald-100 text-emerald-800 font-bold'
-                            : item.similarity >= 70
-                            ? 'bg-amber-100 text-amber-800'
-                            : item.similarity >= 45
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-500'
+                            : item.rank && item.rank <= 10
+                            ? 'bg-rose-100 text-rose-800 font-bold'
+                            : item.rank && item.rank <= 100
+                            ? 'bg-orange-100 text-orange-800 font-semibold'
+                            : item.rank && item.rank <= 1000
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-gray-100 text-gray-500'
                         }`}>
-                          {item.isAnswer ? '일치(정답)' : item.similarity >= 70 ? '상위근접' : item.similarity >= 45 ? '일반근접' : '원거리'}
+                          {item.isAnswer
+                            ? '🏆 정답'
+                            : item.rank && item.rank <= 10
+                            ? '🔥 초근접'
+                            : item.rank && item.rank <= 100
+                            ? '⚡ 매우가까움'
+                            : item.rank && item.rank <= 1000
+                            ? '🌱 유사함'
+                            : '❄️ 1000위밖'}
                         </span>
                       </td>
 
                       {/* F: Rank */}
                       <td
                         onClick={() => handleCellClick('F', rowNum)}
-                        className={`border-r border-b border-gray-300 px-2 text-center font-mono text-gray-600 text-xs ${
-                          selectedCell.col === 'F' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''
-                        }`}
+                        className={`border-r border-b border-gray-300 px-2 text-center font-mono text-xs ${
+                          item.rank && item.rank <= 10
+                            ? 'text-rose-600 font-bold bg-rose-50/50'
+                            : item.rank && item.rank <= 100
+                            ? 'text-orange-600 font-bold bg-orange-50/30'
+                            : item.rank && item.rank <= 1000
+                            ? 'text-emerald-700 font-semibold'
+                            : 'text-gray-400'
+                        } ${selectedCell.col === 'F' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''}`}
                       >
-                        {item.rank ? `${item.rank}위` : '-'}
+                        {item.rank ? `${item.rank}위` : '1000위 밖'}
                       </td>
 
                       {/* G: Status */}

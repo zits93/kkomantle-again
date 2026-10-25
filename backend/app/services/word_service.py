@@ -56,14 +56,18 @@ class WordService:
         is_answer = (guess == target)
 
         rank: Optional[int] = None
-        if not is_answer and len(self.curated_target_words) > 0:
-            higher_count = 0
-            for w in self.curated_target_words:
-                if w != target:
-                    w_sim = embedding_service.calculate_similarity(w, target)
-                    if w_sim > similarity:
-                        higher_count += 1
-            rank = higher_count + 1
+        if is_answer:
+            rank = 1
+        elif similarity >= 98.0:
+            rank = max(2, min(10, int((100.0 - similarity) * 4.5) + 2))
+        elif similarity >= 90.0:
+            rank = 11 + int(((98.0 - similarity) / 8.0) * 89)
+        elif similarity >= 80.0:
+            rank = 101 + int(((90.0 - similarity) / 10.0) * 199)
+        elif similarity >= 68.0:
+            rank = 301 + int(((80.0 - similarity) / 12.0) * 699)
+        else:
+            rank = None
 
         return {
             "word": guess,

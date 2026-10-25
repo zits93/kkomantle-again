@@ -9,47 +9,129 @@ interface GuessListProps {
   currentNickname: string;
 }
 
+export interface RankTierInfo {
+  tier: 'answer' | 'top10' | 'top100' | 'top300' | 'top1000' | 'cold';
+  rankBadgeLabel: string;
+  tierName: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  barGradient: string;
+  barGlow: string;
+  barWidthPercent: number;
+  textColor: string;
+  icon: string;
+}
+
+export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer: boolean = false): RankTierInfo => {
+  if (isAnswer || rank === 1 || similarity >= 100) {
+    return {
+      tier: 'answer',
+      rankBadgeLabel: '1위',
+      tierName: '정답',
+      icon: '🏆',
+      badgeBg: 'bg-amber-500/15 dark:bg-amber-500/25',
+      badgeText: 'text-amber-600 dark:text-amber-300 font-bold',
+      badgeBorder: 'border-amber-400 dark:border-amber-500',
+      barGradient: 'bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400',
+      barGlow: 'shadow-[0_0_14px_rgba(250,204,21,0.65)] animate-pulse',
+      barWidthPercent: 100,
+      textColor: 'text-amber-600 dark:text-amber-400 font-bold',
+    };
+  }
+
+  if (rank && rank <= 10) {
+    const pct = Math.max(93, 100 - (rank - 1) * 0.7);
+    return {
+      tier: 'top10',
+      rankBadgeLabel: `${rank}위`,
+      tierName: '초근접',
+      icon: '🔥',
+      badgeBg: 'bg-rose-500/15 dark:bg-rose-500/25',
+      badgeText: 'text-rose-600 dark:text-rose-400 font-bold',
+      badgeBorder: 'border-rose-400/70 dark:border-rose-500/70',
+      barGradient: 'bg-gradient-to-r from-red-600 via-rose-500 to-amber-400',
+      barGlow: 'shadow-[0_0_12px_rgba(244,63,94,0.55)] animate-pulse',
+      barWidthPercent: pct,
+      textColor: 'text-rose-600 dark:text-rose-400 font-bold',
+    };
+  }
+
+  if (rank && rank <= 100) {
+    const pct = 93 - ((rank - 10) / 90) * 18;
+    return {
+      tier: 'top100',
+      rankBadgeLabel: `${rank}위`,
+      tierName: '매우 가까움',
+      icon: '⚡',
+      badgeBg: 'bg-orange-500/15 dark:bg-orange-500/25',
+      badgeText: 'text-orange-600 dark:text-orange-400 font-bold',
+      badgeBorder: 'border-orange-400/60 dark:border-orange-500/60',
+      barGradient: 'bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400',
+      barGlow: 'shadow-[0_0_9px_rgba(249,115,22,0.4)]',
+      barWidthPercent: pct,
+      textColor: 'text-orange-600 dark:text-orange-400 font-semibold',
+    };
+  }
+
+  if (rank && rank <= 300) {
+    const pct = 75 - ((rank - 100) / 200) * 20;
+    return {
+      tier: 'top300',
+      rankBadgeLabel: `${rank}위`,
+      tierName: '가까움',
+      icon: '🌟',
+      badgeBg: 'bg-amber-500/10 dark:bg-amber-500/20',
+      badgeText: 'text-amber-600 dark:text-amber-400 font-semibold',
+      badgeBorder: 'border-amber-300 dark:border-amber-700',
+      barGradient: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-lime-400',
+      barGlow: 'shadow-[0_0_6px_rgba(251,191,36,0.3)]',
+      barWidthPercent: pct,
+      textColor: 'text-amber-600 dark:text-amber-400 font-medium',
+    };
+  }
+
+  if (rank && rank <= 1000) {
+    const pct = 55 - ((rank - 300) / 700) * 25;
+    return {
+      tier: 'top1000',
+      rankBadgeLabel: `${rank}위`,
+      tierName: '유사함',
+      icon: '🌱',
+      badgeBg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+      badgeText: 'text-emerald-600 dark:text-emerald-400 font-medium',
+      badgeBorder: 'border-emerald-300 dark:border-emerald-700',
+      barGradient: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+      barGlow: 'shadow-[0_0_6px_rgba(16,185,129,0.25)]',
+      barWidthPercent: pct,
+      textColor: 'text-emerald-600 dark:text-emerald-400',
+    };
+  }
+
+  // Outside top 1000 or cold
+  const coldWidth = Math.max(8, Math.min(28, similarity * 0.32));
+  return {
+    tier: 'cold',
+    rankBadgeLabel: '1000위 밖',
+    tierName: '멂',
+    icon: '❄️',
+    badgeBg: 'bg-zinc-100 dark:bg-zinc-800',
+    badgeText: 'text-zinc-500 dark:text-zinc-400',
+    badgeBorder: 'border-zinc-200 dark:border-zinc-700',
+    barGradient: 'bg-gradient-to-r from-slate-300 to-zinc-400 dark:from-zinc-700 dark:to-zinc-600',
+    barGlow: '',
+    barWidthPercent: coldWidth,
+    textColor: 'text-zinc-500 dark:text-zinc-400 font-mono',
+  };
+};
+
 export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, currentNickname }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
 
   const displayList = activeTab === 'all' ? allGuesses : myGuesses;
 
-  // Clean, muted color indicators (anti-AI slop)
-  const getScoreStyle = (sim: number) => {
-    if (sim >= 100) {
-      return {
-        bar: 'bg-emerald-500',
-        text: 'text-emerald-600 dark:text-emerald-400 font-bold',
-        badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-        label: '정답'
-      };
-    }
-    if (sim >= 70) {
-      return {
-        bar: 'bg-amber-500',
-        text: 'text-amber-600 dark:text-amber-400 font-semibold',
-        badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-        label: '매우 근접'
-      };
-    }
-    if (sim >= 45) {
-      return {
-        bar: 'bg-blue-500',
-        text: 'text-blue-600 dark:text-blue-400',
-        badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-        label: '근접'
-      };
-    }
-    return {
-      bar: 'bg-zinc-400 dark:bg-zinc-600',
-      text: 'text-zinc-600 dark:text-zinc-400',
-      badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700',
-      label: '멂'
-    };
-  };
-
-  // Excel Mode Table
+  // Excel Mode Table with Conditional Formatting Data Bars
   if (theme === 'excel') {
     return (
       <div className="w-full max-w-5xl mx-auto my-2 px-2 select-none overflow-x-auto">
@@ -80,12 +162,12 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
           <thead>
             <tr className="bg-gray-100 text-gray-600 font-semibold text-[11px]">
               <th className="border border-gray-300 px-2 py-1 w-12 text-center bg-gray-200">#</th>
-              <th className="border border-gray-300 px-3 py-1 w-16 text-center">순번</th>
-              <th className="border border-gray-300 px-3 py-1 w-32">작업자</th>
+              <th className="border border-gray-300 px-3 py-1 w-28">작업자</th>
               <th className="border border-gray-300 px-4 py-1">입력 단어</th>
-              <th className="border border-gray-300 px-3 py-1 w-28 text-right">유사도 점수</th>
               <th className="border border-gray-300 px-3 py-1 w-24 text-center">순위</th>
-              <th className="border border-gray-300 px-3 py-1 w-28 text-center">판정</th>
+              <th className="border border-gray-300 px-4 py-1 w-44">유사도 막대 게이지</th>
+              <th className="border border-gray-300 px-3 py-1 w-24 text-right">점수</th>
+              <th className="border border-gray-300 px-3 py-1 w-24 text-center">판정</th>
             </tr>
           </thead>
           <tbody>
@@ -97,7 +179,7 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
               </tr>
             ) : (
               displayList.map((item, index) => {
-                const style = getScoreStyle(item.similarity);
+                const tier = getRankTierInfo(item.rank, item.similarity, item.isAnswer);
                 const isMe = item.nickname === currentNickname;
                 return (
                   <tr
@@ -105,9 +187,6 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                     className={`hover:bg-blue-50/50 ${item.isAnswer ? 'bg-emerald-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
                   >
                     <td className="border border-gray-300 px-2 py-1 text-center bg-gray-100 text-gray-400 font-mono text-[10px]">
-                      {index + 1}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-1 text-center font-mono text-gray-500">
                       {index + 1}
                     </td>
                     <td className="border border-gray-300 px-3 py-1 truncate">
@@ -121,15 +200,34 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                         <span className="text-[10px] text-gray-400 font-normal ml-1.5 font-mono">({item.notice})</span>
                       )}
                     </td>
+
+                    {/* Rank with Icon */}
+                    <td className="border border-gray-300 px-3 py-1 text-center font-mono font-bold text-xs">
+                      <span className="inline-flex items-center space-x-1">
+                        <span>{tier.icon}</span>
+                        <span>{tier.rankBadgeLabel}</span>
+                      </span>
+                    </td>
+
+                    {/* Excel In-Cell Data Bar */}
+                    <td className="border border-gray-300 px-2 py-1 relative overflow-hidden">
+                      <div className="w-full h-3.5 bg-gray-100 rounded border border-gray-200 overflow-hidden relative">
+                        <div
+                          className={`h-full rounded ${tier.barGradient} transition-all duration-500`}
+                          style={{ width: `${tier.barWidthPercent}%` }}
+                        />
+                      </div>
+                    </td>
+
+                    {/* Score */}
                     <td className="border border-gray-300 px-3 py-1 text-right font-mono font-bold">
                       {item.similarity.toFixed(1)}%
                     </td>
-                    <td className="border border-gray-300 px-3 py-1 text-center font-mono text-gray-600">
-                      {item.rank ? `${item.rank}위` : '-'}
-                    </td>
+
+                    {/* Verdict */}
                     <td className="border border-gray-300 px-3 py-1 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${item.isAnswer ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'}`}>
-                        {style.label}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${tier.badgeBg} ${tier.badgeText} ${tier.badgeBorder}`}>
+                        {tier.tierName}
                       </span>
                     </td>
                   </tr>
@@ -142,7 +240,7 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
     );
   }
 
-  // Clean Light & Dark Minimalist List
+  // Clean Light & Dark Minimalist List with Prominent Rank and Colorful Dynamic Bar Graphs
   return (
     <div className="w-full max-w-2xl mx-auto px-4 pb-12">
       {/* Tabs */}
@@ -183,67 +281,99 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
           아직 입력된 단어가 없습니다. 위 입력창에서 첫 단어를 입력해보세요.
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {displayList.map((item, index) => {
-            const style = getScoreStyle(item.similarity);
+            const tier = getRankTierInfo(item.rank, item.similarity, item.isAnswer);
             const isMe = item.nickname === currentNickname;
 
             return (
               <div
                 key={item.id}
-                className={`relative border rounded-lg p-3 transition-colors ${
+                className={`relative border rounded-xl p-3.5 transition-all shadow-xs ${
                   item.isAnswer
-                    ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20'
+                    ? 'border-amber-400/80 bg-amber-500/5 dark:bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.15)]'
+                    : tier.tier === 'top10'
+                    ? 'border-rose-300 dark:border-rose-900/60 bg-rose-500/5 dark:bg-rose-500/10'
+                    : tier.tier === 'top100'
+                    ? 'border-orange-200 dark:border-orange-900/40 bg-orange-500/5 dark:bg-orange-500/5'
                     : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
                 }`}
               >
-                {/* Subtle progress indicator bar at the bottom edge */}
-                <div
-                  className={`absolute bottom-0 left-0 h-0.5 rounded-b-lg transition-all ${style.bar}`}
-                  style={{ width: `${Math.min(100, Math.max(4, item.similarity))}%` }}
-                />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-xs font-mono text-zinc-400 w-5 text-center">
+                {/* 1. Header Row: Index, Word, Notice, Rank Badge, Similarity Score */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <span className="text-xs font-mono text-zinc-400 w-5 shrink-0 text-center">
                       {index + 1}
                     </span>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                          {item.word}
+                    <div className="flex items-center space-x-2 truncate">
+                      <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {item.word}
+                      </span>
+
+                      {item.notice && (
+                        <span
+                          className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 truncate"
+                          title="단어 자동 정규화/교정"
+                        >
+                          {item.notice}
                         </span>
-                        {item.notice && (
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.2 rounded border border-zinc-200 dark:border-zinc-700" title="단어 자동 정규화/교정">
-                            {item.notice}
-                          </span>
-                        )}
-                        {item.isAnswer && (
-                          <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>정답</span>
-                          </span>
-                        )}
-                        {item.rank && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                            {item.rank}위
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center space-x-1.5">
-                        <span className={isMe ? 'font-medium text-zinc-700 dark:text-zinc-300' : ''}>
-                          {item.nickname} {isMe && '(나)'}
+                      )}
+
+                      {item.isAnswer && (
+                        <span className="inline-flex items-center space-x-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>정답</span>
                         </span>
-                        <span>•</span>
-                        <span>{style.label}</span>
-                      </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Similarity Percentage */}
-                  <div className="text-right">
-                    <span className={`text-base font-mono font-bold ${style.text}`}>
+                  {/* Right Badges: Prominent Rank & Similarity */}
+                  <div className="flex items-center space-x-2 shrink-0">
+                    {/* Rank Badge */}
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold border flex items-center space-x-1 ${tier.badgeBg} ${tier.badgeText} ${tier.badgeBorder}`}
+                      title={item.rank ? `현재 순위: ${item.rank}위` : '1000위 밖'}
+                    >
+                      <span className="text-xs">{tier.icon}</span>
+                      <span>{tier.rankBadgeLabel}</span>
+                    </span>
+
+                    {/* Similarity Score */}
+                    <span className={`text-sm font-mono font-bold ${tier.textColor}`}>
                       {item.similarity.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Visual Bar Graph Track */}
+                <div className="relative pt-1">
+                  <div className="w-full h-3 rounded-full bg-zinc-100 dark:bg-zinc-800/80 p-0.5 border border-zinc-200/80 dark:border-zinc-700/60 overflow-hidden shadow-inner">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ease-out relative ${tier.barGradient} ${tier.barGlow}`}
+                      style={{ width: `${tier.barWidthPercent}%` }}
+                    >
+                      {/* Subtle reflection gleam on top ranks */}
+                      {(tier.tier === 'answer' || tier.tier === 'top10' || tier.tier === 'top100') && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Subtitle Row: User & Tier Label */}
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-1.5 px-0.5">
+                    <span className="truncate">
+                      작업자:{' '}
+                      <b className={isMe ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-600 dark:text-zinc-400'}>
+                        {item.nickname} {isMe && '(나)'}
+                      </b>
+                    </span>
+
+                    <span className="font-medium text-[11px] flex items-center space-x-1">
+                      <span>{tier.tierName}</span>
+                      {item.rank && item.rank <= 1000 && (
+                        <span className="font-mono opacity-80">({item.rank}/1000위)</span>
+                      )}
                     </span>
                   </div>
                 </div>

@@ -470,7 +470,17 @@ export const useGameSocket = (backendUrl?: string) => {
       isSelf: true,
       isAnswer,
       notice,
-      rank: similarity > 95 ? 1 : similarity > 80 ? 45 : similarity > 60 ? 320 : undefined
+      rank: isAnswer
+        ? 1
+        : similarity >= 98.0
+        ? Math.max(2, Math.min(10, Math.floor((100.0 - similarity) * 4.5) + 2))
+        : similarity >= 90.0
+        ? 11 + Math.floor(((98.0 - similarity) / 8.0) * 89)
+        : similarity >= 80.0
+        ? 101 + Math.floor(((90.0 - similarity) / 10.0) * 199)
+        : similarity >= 68.0
+        ? 301 + Math.floor(((80.0 - similarity) / 12.0) * 699)
+        : undefined
     };
 
     saveMyGuesses(prev => [guessItem, ...prev.filter(g => g.word !== trimmed)].sort((a,b) => b.similarity - a.similarity));
