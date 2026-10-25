@@ -3,10 +3,13 @@ import { User, GuessItem, ChatMessage, HallOfFameEntry, VoteState } from '../typ
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/sounds';
 
-// Default mock dictionary for instant client-side standalone capability
+// Expanded Korean dictionary pool for standalone/client gameplay (nouns, verbs, adverbs)
 const FALLBACK_SECRET_WORDS = [
-  '우주', '인공지능', '사과', '행복', '바다', '고양이', '시간', '커피', '음악', '여름',
-  '겨울', '사랑', '비행기', '도서관', '컴퓨터', '영화', '지구', '별빛', '모험', '친구'
+  '인공지능', '우주', '알고리즘', '행복', '바다', '고양이', '시간', '커피', '음악', '여름',
+  '겨울', '사랑', '비행기', '도서관', '컴퓨터', '영화', '지구', '별빛', '모험', '친구',
+  '스마트폰', '클라우드', '블록체인', '메타버스', '오로라', '무지개', '은하', '강아지', '설렘',
+  '희망', '가족', '여행', '디자인', '사진', '생각하다', '달리다', '꿈꾸다', '노래하다', '만들다',
+  '사랑하다', '이해하다', '빠르게', '천천히', '조용히', '반짝반짝', '다정하게', '영원히', '마침내', '가득'
 ];
 
 export const useGameSocket = (backendUrl?: string) => {
