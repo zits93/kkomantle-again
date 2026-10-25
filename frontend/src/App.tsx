@@ -46,6 +46,12 @@ export const AppContent: React.FC = () => {
     const res = submitGuess(word);
     if (res) {
       triggerScoreBurst(res.similarity);
+      if (res.isAnswer) {
+        // Open Hall of Fame after confetti explosion
+        setTimeout(() => {
+          setIsHallOfFameOpen(true);
+        }, 1200);
+      }
     }
   };
 
