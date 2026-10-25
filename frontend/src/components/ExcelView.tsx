@@ -19,12 +19,21 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
   disabled,
   gameStats,
 }) => {
-  const [activeSheet, setActiveSheet] = useState<'all' | 'mine'>('all');
+  const [activeSheet, setActiveSheet] = useState<'similarity' | 'recent'>('similarity');
   const [selectedCell, setSelectedCell] = useState<{ col: string; row: number }>({ col: 'C', row: 2 });
   const [inputFormula, setInputFormula] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const displayList = activeSheet === 'all' ? allGuesses : myGuesses;
+  const displayList = React.useMemo(() => {
+    const list = [...allGuesses];
+    if (activeSheet === 'similarity') {
+      return list.sort((a, b) => {
+        if (b.similarity !== a.similarity) return b.similarity - a.similarity;
+        return b.timestamp - a.timestamp;
+      });
+    }
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [allGuesses, activeSheet]);
 
   // Real Excel Column letters: A through K
   const columns = [
@@ -331,24 +340,24 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
 
           <div className="flex items-center space-x-1 pl-2">
             <button
-              onClick={() => setActiveSheet('all')}
+              onClick={() => setActiveSheet('similarity')}
               className={`px-3 py-1 text-xs rounded-t font-sans border-t-2 ${
-                activeSheet === 'all'
+                activeSheet === 'similarity'
                   ? 'bg-white font-semibold text-[#107c41] border-[#107c41] shadow-xs'
                   : 'text-gray-700 hover:bg-gray-200 border-transparent'
               }`}
             >
-              Sheet1 (모두의_어휘분석)
+              Sheet1 (유사도순_분석)
             </button>
             <button
-              onClick={() => setActiveSheet('mine')}
+              onClick={() => setActiveSheet('recent')}
               className={`px-3 py-1 text-xs rounded-t font-sans border-t-2 ${
-                activeSheet === 'mine'
+                activeSheet === 'recent'
                   ? 'bg-white font-semibold text-[#107c41] border-[#107c41] shadow-xs'
                   : 'text-gray-700 hover:bg-gray-200 border-transparent'
               }`}
             >
-              Sheet2 (내_작업목록)
+              Sheet2 (최신순_분석)
             </button>
             <button className="p-1 text-gray-600 hover:bg-gray-200 rounded ml-1" title="새 시트">
               <Plus className="w-3.5 h-3.5" />

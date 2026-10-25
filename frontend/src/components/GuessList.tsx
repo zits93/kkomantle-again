@@ -3,11 +3,13 @@ import { useTheme } from '../context/ThemeContext';
 import { GuessItem, GameStats } from '../types/game';
 import { Globe, User, CheckCircle2 } from 'lucide-react';
 
+export type SortMode = 'similarity' | 'recent';
+
 interface GuessListProps {
-  myGuesses: GuessItem[];
   allGuesses: GuessItem[];
   currentNickname: string;
   gameStats?: GameStats;
+  myGuesses?: GuessItem[];
 }
 
 export interface RankTierInfo {
@@ -79,13 +81,25 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
   };
 };
 
-export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, currentNickname, gameStats }) => {
+export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNickname, gameStats }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('similarity');
 
-  const displayList = activeTab === 'all' ? allGuesses : myGuesses;
   const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
   const totalWords = gameStats?.totalWords ?? 119656;
+
+  const displayList = React.useMemo(() => {
+    const list = [...allGuesses];
+    if (sortMode === 'similarity') {
+      return list.sort((a, b) => {
+        if (b.similarity !== a.similarity) {
+          return b.similarity - a.similarity;
+        }
+        return b.timestamp - a.timestamp;
+      });
+    }
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [allGuesses, sortMode]);
 
   // Excel Mode Table with Subtle Data Bars
   if (theme === 'excel') {
@@ -93,24 +107,24 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
       <div className="w-full max-w-5xl mx-auto my-2 px-2 select-none overflow-x-auto">
         <div className="flex items-center space-x-1 border-b border-gray-300 bg-gray-50 text-xs mb-1 px-1">
           <button
-            onClick={() => setActiveTab('all')}
+            onClick={() => setSortMode('similarity')}
             className={`px-3 py-1 font-sans border-t-2 ${
-              activeTab === 'all'
+              sortMode === 'similarity'
                 ? 'border-excel-header bg-white font-semibold text-gray-800'
                 : 'border-transparent text-gray-500 hover:bg-gray-100'
             }`}
           >
-            모두의 추측 ({allGuesses.length}건)
+            유사도순 ({allGuesses.length}건)
           </button>
           <button
-            onClick={() => setActiveTab('mine')}
+            onClick={() => setSortMode('recent')}
             className={`px-3 py-1 font-sans border-t-2 ${
-              activeTab === 'mine'
+              sortMode === 'recent'
                 ? 'border-excel-header bg-white font-semibold text-gray-800'
                 : 'border-transparent text-gray-500 hover:bg-gray-100'
             }`}
           >
-            내 입력 ({myGuesses.length}건)
+            최신순 ({allGuesses.length}건)
           </button>
         </div>
 
@@ -196,36 +210,34 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
   // Clean, Minimalist Scandinavian/Linear Aesthetic List
   return (
     <div className="w-full max-w-2xl mx-auto px-4 pb-12">
-      {/* Tabs */}
+      {/* Sort Controls & Meta Bar */}
       <div className="flex items-center justify-between mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-2">
-        <div className="flex space-x-1">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-xs select-none">
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              activeTab === 'all'
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            onClick={() => setSortMode('similarity')}
+            className={`px-3 py-1 rounded-md font-medium transition ${
+              sortMode === 'similarity'
+                ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>모두의 단어 ({allGuesses.length})</span>
+            유사도순
           </button>
           <button
-            onClick={() => setActiveTab('mine')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              activeTab === 'mine'
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            onClick={() => setSortMode('recent')}
+            className={`px-3 py-1 rounded-md font-medium transition ${
+              sortMode === 'recent'
+                ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >
-            <User className="w-3.5 h-3.5" />
-            <span>내 단어 ({myGuesses.length})</span>
+            최신순
           </button>
         </div>
 
         <div className="flex items-center space-x-2 text-xs text-zinc-400 font-mono">
           <span className="hidden sm:inline">1000위 컷: ≥ {top1000Cutoff.toFixed(1)}점 ·</span>
-          <span>총 {displayList.length}건</span>
+          <span>총 {displayList.length}단어</span>
         </div>
       </div>
 
