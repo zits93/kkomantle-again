@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GuessItem } from '../types/game';
+import { GuessItem, GameStats } from '../types/game';
 import { Check, X, Plus, ChevronLeft, ChevronRight, Sliders, Maximize2 } from 'lucide-react';
 
 interface ExcelViewProps {
@@ -8,6 +8,7 @@ interface ExcelViewProps {
   currentNickname: string;
   onSubmitWord: (word: string) => void;
   disabled?: boolean;
+  gameStats?: GameStats;
 }
 
 export const ExcelView: React.FC<ExcelViewProps> = ({
@@ -16,6 +17,7 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
   currentNickname,
   onSubmitWord,
   disabled,
+  gameStats,
 }) => {
   const [activeSheet, setActiveSheet] = useState<'all' | 'mine'>('all');
   const [selectedCell, setSelectedCell] = useState<{ col: string; row: number }>({ col: 'C', row: 2 });
@@ -360,6 +362,10 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
             <span>준비</span>
             <span className="opacity-80">|</span>
             <span>선택 영역: {selectedCell.col}{selectedCell.row}</span>
+            <span className="opacity-80">|</span>
+            <span>사본DB: {(gameStats?.totalWords ?? 119656).toLocaleString()}단어</span>
+            <span className="opacity-80">|</span>
+            <span>1000위 컷: ≥{(gameStats?.top1000Cutoff ?? 24.0).toFixed(1)}%</span>
           </div>
 
           <div className="flex items-center space-x-4 font-mono text-[11px]">

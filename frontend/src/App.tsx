@@ -45,6 +45,7 @@ export const AppContent: React.FC = () => {
     serverHost,
     updateServerHost,
     guessError,
+    gameStats,
   } = useGameSocket();
 
   // Compute unread count for bottom bar badge
@@ -142,17 +143,19 @@ export const AppContent: React.FC = () => {
           allGuesses={allGuesses}
           currentNickname={nickname}
           onSubmitWord={handleWordSubmit}
+          gameStats={gameStats}
         />
       ) : (
         <main className="flex-1 flex flex-col justify-start pb-24 md:pb-12">
           {/* Word Input */}
-          <WordInput onSubmit={handleWordSubmit} error={guessError} />
+          <WordInput onSubmit={handleWordSubmit} error={guessError} gameStats={gameStats} />
 
           {/* Guesses List */}
           <GuessList
             myGuesses={myGuesses}
             allGuesses={allGuesses}
             currentNickname={nickname}
+            gameStats={gameStats}
           />
         </main>
       )}

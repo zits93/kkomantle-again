@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { GuessItem } from '../types/game';
+import { GuessItem, GameStats } from '../types/game';
 import { Globe, User, CheckCircle2 } from 'lucide-react';
 
 interface GuessListProps {
   myGuesses: GuessItem[];
   allGuesses: GuessItem[];
   currentNickname: string;
+  gameStats?: GameStats;
 }
 
 export interface RankTierInfo {
@@ -71,18 +72,20 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
   return {
     tier: 'cold',
     rankText: '-',
-    tierLabel: '순위 밖',
+    tierLabel: '순위 밖 (<24.0점)',
     pillClass: 'bg-zinc-50 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800',
     barColor: 'bg-zinc-300 dark:bg-zinc-700',
     barWidthPercent: coldWidth,
   };
 };
 
-export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, currentNickname }) => {
+export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, currentNickname, gameStats }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
 
   const displayList = activeTab === 'all' ? allGuesses : myGuesses;
+  const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
+  const totalWords = gameStats?.totalWords ?? 119656;
 
   // Excel Mode Table with Subtle Data Bars
   if (theme === 'excel') {
@@ -220,15 +223,19 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
           </button>
         </div>
 
-        <span className="text-xs text-zinc-400 font-mono">
-          총 {displayList.length}건
-        </span>
+        <div className="flex items-center space-x-2 text-xs text-zinc-400 font-mono">
+          <span className="hidden sm:inline">1000위 컷: ≥ {top1000Cutoff.toFixed(1)}점 ·</span>
+          <span>총 {displayList.length}건</span>
+        </div>
       </div>
 
       {/* Rows */}
       {displayList.length === 0 ? (
-        <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-8 text-center text-zinc-400 text-xs">
-          아직 입력된 단어가 없습니다. 위 입력창에서 첫 단어를 입력해보세요.
+        <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-8 text-center text-zinc-400 text-xs space-y-1">
+          <div>아직 입력된 단어가 없습니다. 위 입력창에서 첫 단어를 입력해보세요.</div>
+          <div className="text-[11px] text-zinc-500 font-mono pt-1">
+            (총 {totalWords.toLocaleString()}개 단어 중 유사도 {top1000Cutoff.toFixed(1)}점 이상 시 1,000위 내 진입)
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

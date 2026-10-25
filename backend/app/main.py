@@ -45,6 +45,12 @@ def get_hall_of_fame():
 def get_current_game_state():
     return {
         "roundId": game_state.round_id,
+        "totalWords": len(word_service.words_pool),
+        "rankCutoffs": {
+            "top10": 58.0,
+            "top100": 45.0,
+            "top1000": 24.0
+        },
         "allGuesses": game_state.get_guesses_for_round(),
         "activeUsers": len(connection_manager.active_connections),
         "solvedBy": game_state.solved_by
@@ -75,6 +81,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 init_data = {
                     "type": "init",
                     "roundId": game_state.round_id,
+                    "totalWords": len(word_service.words_pool),
+                    "rankCutoffs": {
+                        "top10": 58.0,
+                        "top100": 45.0,
+                        "top1000": 24.0
+                    },
                     "activeUsers": connection_manager.get_user_list(),
                     "voteState": {
                         "activeUsers": len(connection_manager.active_connections),

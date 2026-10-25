@@ -45,6 +45,13 @@ export interface VoteState {
   hasVoted: boolean;
 }
 
+export interface GameStats {
+  totalWords: number;
+  top1000Cutoff: number;
+  top100Cutoff: number;
+  top10Cutoff: number;
+}
+
 export interface GameStatus {
   roundId: string;
   targetRevealed?: boolean;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { User, GuessItem, ChatMessage, HallOfFameEntry, VoteState } from '../types/game';
+import { User, GuessItem, ChatMessage, HallOfFameEntry, VoteState, GameStats } from '../types/game';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/sounds';
 
@@ -110,6 +110,12 @@ export const useGameSocket = (backendUrl?: string) => {
   const [revealedWord, setRevealedWord] = useState<string>('');
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
   const [previousRoundAnswer, setPreviousRoundAnswer] = useState<string | null>(null);
+  const [gameStats, setGameStats] = useState<GameStats>({
+    totalWords: 119656,
+    top1000Cutoff: 24.0,
+    top100Cutoff: 45.0,
+    top10Cutoff: 58.0,
+  });
 
   const socketRef = useRef<WebSocket | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -317,6 +323,14 @@ export const useGameSocket = (backendUrl?: string) => {
         if (data.chatHistory) {
           setChatMessages(data.chatHistory);
           try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(data.chatHistory)); } catch {}
+        }
+        if (data.totalWords) {
+          setGameStats({
+            totalWords: data.totalWords,
+            top1000Cutoff: data.rankCutoffs?.top1000 ?? 24.0,
+            top100Cutoff: data.rankCutoffs?.top100 ?? 45.0,
+            top10Cutoff: data.rankCutoffs?.top10 ?? 58.0,
+          });
         }
         if (Array.isArray(data.allGuesses)) {
           saveAllGuesses(() => data.allGuesses, data.roundId);
@@ -687,5 +701,6 @@ export const useGameSocket = (backendUrl?: string) => {
     serverHost,
     updateServerHost,
     guessError,
+    gameStats,
   };
 };
