@@ -40,8 +40,10 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
     }
   };
 
+  const defaultHost = (import.meta as any).env?.VITE_DEFAULT_SERVER_HOST || '';
+
   const handleResetDefault = () => {
-    const defaultHost = '7b27-211-177-123-232.ngrok-free.app';
+    if (!defaultHost) return;
     setInputServer(defaultHost);
     onSaveServer(defaultHost);
     onClose();
@@ -146,14 +148,18 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
             {/* Quick Presets */}
             <div className="flex items-center space-x-2 pt-1 text-[11px]">
               <span className="text-zinc-400">빠른 설정:</span>
-              <button
-                type="button"
-                onClick={handleResetDefault}
-                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                기본 ngrok 터널
-              </button>
-              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              {defaultHost && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleResetDefault}
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    기본 원격 서버
+                  </button>
+                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                </>
+              )}
               <button
                 type="button"
                 onClick={handleSetLocal}

@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import { CornerDownLeft, Info } from 'lucide-react';
 import { GameStats } from '../types/game';
 
@@ -11,7 +10,6 @@ interface WordInputProps {
 }
 
 export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error, gameStats }) => {
-  const { theme } = useTheme();
   const [word, setWord] = useState('');
   const [showTierGuide, setShowTierGuide] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,41 +27,7 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
     setWord('');
   };
 
-  // Excel Mode Formula Bar
-  if (theme === 'excel') {
-    return (
-      <div className="bg-white border-b border-gray-300 px-3 py-1.5 flex items-center space-x-2 text-xs font-mono">
-        <div className="w-16 bg-gray-100 border border-gray-300 px-2 py-1 text-center font-semibold text-gray-700">
-          C4
-        </div>
-        <div className="text-gray-400 font-serif italic text-sm font-bold px-1 select-none">
-          fx
-        </div>
-        <form onSubmit={handleSubmit} className="flex-1 flex items-center space-x-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={word}
-            onChange={e => setWord(e.target.value)}
-            placeholder="단어를 입력하고 Enter를 누르세요 (예: 컴퓨터, 달리다, 빠르게)"
-            disabled={disabled}
-            className="flex-1 border border-gray-300 focus:border-excel-cellSelected focus:ring-1 focus:ring-excel-cellSelected outline-none px-2.5 py-1 text-xs font-sans text-black"
-          />
-          <button
-            type="submit"
-            disabled={!word.trim() || disabled}
-            className="bg-excel-header hover:bg-excel-headerDark disabled:opacity-40 text-white px-3 py-1 text-xs font-sans rounded transition"
-          >
-            입력
-          </button>
-        </form>
-        <div className="text-gray-500 font-mono text-[10px] px-2 whitespace-nowrap hidden lg:block">
-          [사본DB: {totalWords.toLocaleString()}단어 | 1000위컷: ≥{top1000Cutoff.toFixed(1)}%]
-        </div>
-      </div>
-    );
-  }
-
+  // Note: Excel mode input is handled directly by ExcelView.
   // Clean Light & Dark Minimalist Input
   return (
     <div className="w-full max-w-2xl mx-auto my-6 px-4">

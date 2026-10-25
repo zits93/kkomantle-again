@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GuessItem, GameStats } from '../types/game';
 import { Check, X, Plus, ChevronLeft, ChevronRight, Sliders, Maximize2 } from 'lucide-react';
+import { getRankTierInfo } from './GuessList';
 
 interface ExcelViewProps {
   myGuesses: GuessItem[];
@@ -219,21 +220,16 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                           selectedCell.col === 'D' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''
                         }`}
                       >
-                        {/* Conditional Formatting Data Bar */}
-                        <div
-                          className={`absolute inset-y-0.5 left-0.5 rounded-xs opacity-25 ${
-                            item.isAnswer
-                              ? 'bg-amber-500'
-                              : item.rank && item.rank <= 10
-                              ? 'bg-rose-500'
-                              : item.rank && item.rank <= 100
-                              ? 'bg-orange-500'
-                              : item.similarity >= 68
-                              ? 'bg-emerald-500'
-                              : 'bg-gray-400'
-                          }`}
-                          style={{ width: `${Math.min(98, Math.max(4, item.similarity))}%` }}
-                        />
+                        {/* Conditional Formatting Data Bar using shared tier logic */}
+                        {(() => {
+                          const tierInfo = getRankTierInfo(item.rank, item.similarity, item.isAnswer);
+                          return (
+                            <div
+                              className={`absolute inset-y-0.5 left-0.5 rounded-xs opacity-25 ${tierInfo.barColor}`}
+                              style={{ width: `${Math.min(98, Math.max(4, tierInfo.barWidthPercent))}%` }}
+                            />
+                          );
+                        })()}
                         <span className="relative z-10 font-bold text-gray-800">
                           {item.similarity.toFixed(1)}%
                         </span>
@@ -246,27 +242,22 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                           selectedCell.col === 'E' && selectedCell.row === rowNum ? 'outline outline-2 outline-[#107c41] z-10' : ''
                         }`}
                       >
-                        <span className={`px-1.5 py-0.2 rounded text-[11px] font-medium ${
-                          item.isAnswer
-                            ? 'bg-emerald-100 text-emerald-800 font-bold'
-                            : item.rank && item.rank <= 10
-                            ? 'bg-rose-100 text-rose-800 font-bold'
-                            : item.rank && item.rank <= 100
-                            ? 'bg-orange-100 text-orange-800 font-semibold'
-                            : item.rank && item.rank <= 1000
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {item.isAnswer
-                            ? '🏆 정답'
-                            : item.rank && item.rank <= 10
-                            ? '🔥 초근접'
-                            : item.rank && item.rank <= 100
-                            ? '⚡ 매우가까움'
-                            : item.rank && item.rank <= 1000
-                            ? '🌱 유사함'
-                            : '❄️ 1000위밖'}
-                        </span>
+                        {(() => {
+                          const tierInfo = getRankTierInfo(item.rank, item.similarity, item.isAnswer);
+                          return (
+                            <span className={`px-1.5 py-0.2 rounded text-[11px] font-medium ${tierInfo.pillClass}`}>
+                              {item.isAnswer
+                                ? '🏆 정답'
+                                : tierInfo.tier === 'top10'
+                                ? '🔥 초근접'
+                                : tierInfo.tier === 'top100'
+                                ? '⚡ 매우가까움'
+                                : tierInfo.tier === 'top1000'
+                                ? '🌱 유사함'
+                                : '❄️ 1000위밖'}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* F: Rank */}

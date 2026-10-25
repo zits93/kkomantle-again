@@ -33,27 +33,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const handleClose = controlledOnClose || (() => setInternalIsOpen(false));
 
   const [inputText, setInputText] = useState('');
-  const [lastReadId, setLastReadId] = useState<string>(() => {
-    return localStorage.getItem('kkomantle_last_read_id') || '';
-  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Calculate unread count if not provided
-  const internalUnreadCount = React.useMemo(() => {
-    if (isOpen) return 0;
-    if (!lastReadId) return messages.length;
-    const lastIdx = messages.findIndex(m => m.id === lastReadId);
-    if (lastIdx === -1) return messages.length;
-    return Math.max(0, messages.length - 1 - lastIdx);
-  }, [messages, lastReadId, isOpen]);
-
-  const displayUnread = controlledUnreadCount !== undefined ? controlledUnreadCount : internalUnreadCount;
+  const displayUnread = controlledUnreadCount !== undefined ? controlledUnreadCount : 0;
 
   useEffect(() => {
     if (isOpen && messages.length > 0) {
-      const latest = messages[messages.length - 1];
-      setLastReadId(latest.id);
-      localStorage.setItem('kkomantle_last_read_id', latest.id);
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [isOpen, messages]);
