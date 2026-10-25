@@ -141,9 +141,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
                   if (isSystem) {
                     return (
-                      <div key={msg.id} className="text-center my-1">
-                        <span className="inline-block px-2.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px]">
-                          📢 {msg.text}
+                      <div key={msg.id} className="text-center my-1.5">
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 text-[11px]">
+                          <span>{msg.text}</span>
                         </span>
                       </div>
                     );

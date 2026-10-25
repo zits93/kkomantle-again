@@ -34,7 +34,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [nickInput, setNickInput] = useState(nickname);
 
   const topWinners = hallOfFame.slice(0, 3);
-  const medals = ['🥇', '🥈', '🥉'];
 
   const handleNickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,11 +193,11 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenHallOfFame}
             className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-medium flex items-center space-x-1.5 transition"
           >
-            <Trophy className="w-3.5 h-3.5 text-amber-500" />
+            <Trophy className="w-3.5 h-3.5 text-zinc-500" />
             <span>랭킹</span>
             {topWinners.length > 0 && (
-              <span className="text-[11px] text-zinc-400 ml-0.5">
-                {topWinners.map((w, idx) => `${medals[idx]}${w.nickname.slice(0,2)}`).join(' ')}
+              <span className="text-[11px] text-zinc-400 font-mono ml-0.5">
+                ({topWinners.length})
               </span>
             )}
           </button>

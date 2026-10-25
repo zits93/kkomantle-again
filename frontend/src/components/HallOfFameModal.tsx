@@ -21,8 +21,6 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
   const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose });
   if (!isOpen) return null;
 
-  const medals = ['🥇', '🥈', '🥉'];
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
       <div
@@ -67,14 +65,15 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
         <div className="p-3 max-h-72 overflow-y-auto space-y-1">
           {entries.length === 0 ? (
             <div className="text-center py-10 px-4 text-xs text-zinc-400">
-              <div className="text-2xl mb-2">🏆</div>
+              <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2.5">
+                <Trophy className="w-5 h-5 text-zinc-400" />
+              </div>
               <p className="font-medium text-zinc-700 dark:text-zinc-300">아직 등록된 정답자가 없습니다.</p>
               <p className="text-[11px] text-zinc-400 mt-1">단어를 맞추고 랭킹 1위가 되어보세요!</p>
             </div>
           ) : (
             entries.map((entry) => {
               const isMe = entry.nickname === currentNickname;
-              const isMedal = entry.rank <= 3;
 
               return (
                 <div
@@ -86,8 +85,18 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
-                    <span className="w-6 text-center font-mono font-semibold text-zinc-500">
-                      {isMedal ? medals[entry.rank - 1] : `${entry.rank}`}
+                    <span
+                      className={`w-6 h-6 rounded-md flex items-center justify-center font-mono text-xs font-semibold ${
+                        entry.rank === 1
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                          : entry.rank === 2
+                          ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200'
+                          : entry.rank === 3
+                          ? 'bg-amber-800/10 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400'
+                          : 'text-zinc-400'
+                      }`}
+                    >
+                      {entry.rank}
                     </span>
                     <span className="text-zinc-900 dark:text-zinc-100">
                       {entry.nickname} {isMe && <span className="text-zinc-400 text-[10px] ml-1">(나)</span>}

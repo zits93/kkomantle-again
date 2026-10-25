@@ -239,14 +239,14 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
                           return (
                             <span className={`px-1.5 py-0.2 rounded text-[11px] font-medium ${tierInfo.pillClass}`}>
                               {item.isAnswer
-                                ? '🏆 정답'
+                                ? '정답'
                                 : tierInfo.tier === 'top10'
-                                ? '🔥 초근접'
+                                ? '초근접'
                                 : tierInfo.tier === 'top100'
-                                ? '⚡ 매우가까움'
+                                ? '매우가까움'
                                 : tierInfo.tier === 'top1000'
-                                ? '🌱 유사함'
-                                : '❄️ 1000위밖'}
+                                ? '유사함'
+                                : '1000위밖'}
                             </span>
                           );
                         })()}
