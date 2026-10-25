@@ -52,6 +52,16 @@ export interface GameStats {
   top10Cutoff: number;
 }
 
+export interface UserCheckResult {
+  nickname: string;
+  exists: boolean;
+  lastMaskedIp?: string;
+  currentClientIp?: string;
+  isSameIp?: boolean;
+  totalWins?: number;
+  lastSeenAt?: string;
+}
+
 export interface GameStatus {
   roundId: string;
   targetRevealed?: boolean;

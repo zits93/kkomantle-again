@@ -603,58 +603,7 @@ export const useGameSocket = (backendUrl?: string) => {
       return;
     }
 
-    // Standalone fallback
-    if (type === 'answer_reveal') {
-      const prevTarget = secretWordRef.current;
-      const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
-      const newWord = FALLBACK_SECRET_WORDS[nextIdx];
-      const newRoundId = `round-${Date.now()}`;
-
-      secretWordRef.current = newWord;
-      localStorage.setItem('kkomantle_secret_word', newWord);
-      setRoundId(newRoundId);
-      localStorage.setItem('kkomantle_round_id', newRoundId);
-
-      setMyGuesses([]);
-      setAllGuesses([]);
-      try {
-        localStorage.removeItem(`kkomantle_all_guesses_${newRoundId}`);
-        localStorage.removeItem(`kkomantle_my_guesses_${newRoundId}`);
-      } catch {}
-
-      setIsAnswerRevealed(false);
-      setRevealedWord('');
-      setPreviousRoundAnswer(prevTarget);
-
-      const revealMsg: ChatMessage = {
-        id: `sys-${Date.now()}`,
-        type: 'notice',
-        sender: '시스템',
-        text: `📢 ${nickname}님의 요청으로 정답이 공개되었습니다: [${prevTarget}] (새 단어로 교체됩니다)`,
-        timestamp: Date.now()
-      };
-
-      setChatMessages(prev => {
-        const updated = [...prev, revealMsg].slice(-300);
-        try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-
-      if (channelRef.current) {
-        channelRef.current.postMessage({
-          type: 'SYNC_ROUND_RESET',
-          roundId: newRoundId,
-          previousAnswer: prevTarget,
-          newSecretWord: newWord
-        });
-        channelRef.current.postMessage({
-          type: 'SYNC_CHAT',
-          message: revealMsg
-        });
-      }
-      return;
-    }
-
+    // Standalone fallback: normal chat message
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       type,

@@ -5,6 +5,7 @@ import os
 from typing import Set, Dict, Any, List, Optional
 from app.config import settings
 from app.services.hall_of_fame import hall_of_fame_service
+from app.services.user_service import user_service
 
 class GameState:
     def __init__(self, db_path: str = settings.DB_PATH):
@@ -185,6 +186,7 @@ class GameState:
             if not self.solved_by:
                 self.solved_by = nickname
             hall_of_fame_service.record_win(nickname, client_ip)
+            user_service.record_win(nickname)
 
         return guess_item
 

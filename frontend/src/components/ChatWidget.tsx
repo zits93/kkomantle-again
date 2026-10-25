@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { ChatMessage } from '../types/game';
-import { MessageSquare, X, Send, Eye } from 'lucide-react';
+import { MessageSquare, X, Send } from 'lucide-react';
 
 interface ChatWidgetProps {
   messages: ChatMessage[];
@@ -65,12 +65,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setInputText('');
   };
 
-  const handleRevealAnswer = () => {
-    if (window.confirm('정답을 확인하고 채팅방에 공개하시겠습니까?')) {
-      onSendMessage('정답 공개 요청을 발송했습니다.', 'answer_reveal');
-    }
-  };
-
   return (
     <>
       {/* Floating Toggle Button (Desktop only on standard theme, hidden on mobile) */}
@@ -128,14 +122,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               </div>
 
               <div className="flex items-center space-x-1.5">
-                <button
-                  onClick={handleRevealAnswer}
-                  className="px-2 py-0.5 rounded text-[10px] border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-medium flex items-center space-x-1"
-                  title="정답 확인 및 공개"
-                >
-                  <Eye className="w-3 h-3" />
-                  <span>정답 공개</span>
-                </button>
                 <button
                   onClick={handleClose}
                   className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-zinc-400"

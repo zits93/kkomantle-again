@@ -11,6 +11,7 @@ import { HallOfFameModal } from './components/HallOfFameModal';
 import { ActiveUsersModal } from './components/ActiveUsersModal';
 import { MobileBottomBar } from './components/MobileBottomBar';
 import { ServerSettingsModal } from './components/ServerSettingsModal';
+import { NicknameModal } from './components/NicknameModal';
 
 export const AppContent: React.FC = () => {
   const { theme } = useTheme();
@@ -18,6 +19,9 @@ export const AppContent: React.FC = () => {
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(() => {
+    return !localStorage.getItem('kkomantle_nickname_confirmed');
+  });
 
   const [lastReadChatId, setLastReadChatId] = useState<string>(() => {
     return localStorage.getItem('kkomantle_last_read_id') || '';
@@ -91,6 +95,7 @@ export const AppContent: React.FC = () => {
         onChangeNickname={updateNickname}
         isConnected={isConnected}
         onOpenServerSettings={() => setIsServerModalOpen(true)}
+        onOpenNicknameModal={() => setIsNicknameModalOpen(true)}
       />
 
       {/* Excel Ribbon Toolbar in Excel Mode */}
@@ -196,6 +201,16 @@ export const AppContent: React.FC = () => {
         isConnected={isConnected}
         currentServer={serverHost}
         onSaveServer={updateServerHost}
+      />
+
+      {/* Nickname & Existing User IP Verification Modal */}
+      <NicknameModal
+        isOpen={isNicknameModalOpen}
+        onClose={() => setIsNicknameModalOpen(false)}
+        currentNickname={nickname}
+        serverHost={serverHost}
+        onConfirmNickname={updateNickname}
+        canDismiss={Boolean(localStorage.getItem('kkomantle_nickname_confirmed'))}
       />
 
       {/* Mobile Bottom Navigation Bar (Hidden on desktop & Excel mode) */}

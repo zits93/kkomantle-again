@@ -8,6 +8,7 @@ from app.services.game_state import game_state
 from app.services.hall_of_fame import hall_of_fame_service
 from app.services.chat_manager import chat_service
 from app.services.word_service import word_service
+from app.services.user_service import user_service
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -41,6 +42,25 @@ def health_check():
 def get_hall_of_fame():
     return hall_of_fame_service.get_leaderboard()
 
+@app.get("/api/users/check")
+def check_user_nickname(nickname: str, request: Request):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    return user_service.check_nickname(nickname, client_ip)
+
+@app.post("/api/users/confirm")
+async def confirm_user_nickname(payload: dict, request: Request):
+    nickname = payload.get("nickname", "").strip()
+    if not nickname:
+        return {"error": "닉네임이 필요합니다."}
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    return user_service.confirm_user(nickname, client_ip)
+
 @app.get("/api/game-state")
 def get_current_game_state():
     return {
@@ -59,7 +79,13 @@ def get_current_game_state():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     conn_id = f"conn_{uuid.uuid4().hex[:8]}"
-    client_ip = websocket.client.host if websocket.client else "127.0.0.1"
+    forwarded = websocket.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    elif websocket.client:
+        client_ip = websocket.client.host
+    else:
+        client_ip = "127.0.0.1"
 
     await connection_manager.connect(websocket, conn_id, client_ip)
 
@@ -76,6 +102,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if msg_type == "join":
                 nickname = payload.get("nickname", f"탐험가_{conn_id[:4]}")
                 connection_manager.update_nickname(conn_id, nickname)
+                user_service.confirm_user(nickname, client_ip)
 
                 # Send initial snapshot to joining client
                 init_data = {
@@ -106,9 +133,33 @@ async def websocket_endpoint(websocket: WebSocket):
                     "users": connection_manager.get_user_list()
                 })
 
+            elif msg_type == "check_nickname":
+                target_nick = payload.get("nickname", "").strip()
+                res = user_service.check_nickname(target_nick, client_ip)
+                await connection_manager.send_personal(conn_id, {
+                    "type": "check_nickname_result",
+                    **res
+                })
+
+            elif msg_type == "confirm_nickname":
+                target_nick = payload.get("nickname", "").strip()
+                if target_nick:
+                    user_info = user_service.confirm_user(target_nick, client_ip)
+                    connection_manager.update_nickname(conn_id, target_nick)
+                    await connection_manager.send_personal(conn_id, {
+                        "type": "nickname_confirmed",
+                        "nickname": target_nick,
+                        "userInfo": user_info
+                    })
+                    await connection_manager.broadcast({
+                        "type": "user_list",
+                        "users": connection_manager.get_user_list()
+                    })
+
             elif msg_type == "change_nickname":
                 new_nick = payload.get("nickname")
                 if new_nick:
+                    user_service.confirm_user(new_nick, client_ip)
                     connection_manager.update_nickname(conn_id, new_nick)
                     await connection_manager.broadcast({
                         "type": "user_list",
@@ -218,25 +269,7 @@ async def websocket_endpoint(websocket: WebSocket):
             elif msg_type == "chat":
                 text = payload.get("text", "").strip()
                 nickname = payload.get("nickname", "익명")
-                sub_type = payload.get("msgType", "chat")
-
-                if sub_type == "answer_reveal":
-                    prev_word = game_state.target_word
-                    new_word = word_service.get_random_word(exclude=prev_word)
-                    game_state.set_target_word(new_word)
-
-                    reveal_msg = chat_service.add_message(
-                        sender="시스템",
-                        text=f"📢 {nickname}님의 요청으로 정답이 공개되었습니다: [{prev_word}] (새로운 단어로 교체됩니다)",
-                        msg_type="notice"
-                    )
-                    await connection_manager.broadcast({"type": "chat_message", "message": reveal_msg})
-                    await connection_manager.broadcast({
-                        "type": "round_reset",
-                        "roundId": game_state.round_id,
-                        "previousAnswer": prev_word
-                    })
-                elif text:
+                if text:
                     msg = chat_service.add_message(sender=nickname, text=text, msg_type="chat")
                     await connection_manager.broadcast({"type": "chat_message", "message": msg})
 

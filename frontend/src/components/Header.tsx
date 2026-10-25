@@ -13,6 +13,7 @@ interface HeaderProps {
   onChangeNickname: (newNick: string) => void;
   isConnected: boolean;
   onOpenServerSettings?: () => void;
+  onOpenNicknameModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onChangeNickname,
   isConnected,
   onOpenServerSettings,
+  onOpenNicknameModal,
 }) => {
   const { theme, toggleTheme, toggleExcel } = useTheme();
   const [showUsersPopover, setShowUsersPopover] = useState(false);
@@ -141,28 +143,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Nickname pill */}
           <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center pl-2 border-l border-zinc-200 dark:border-zinc-800">
-            {isEditingNick ? (
-              <form onSubmit={handleNickSubmit} className="flex items-center space-x-1">
-                <input
-                  type="text"
-                  value={nickInput}
-                  onChange={e => setNickInput(e.target.value)}
-                  onBlur={() => setIsEditingNick(false)}
-                  autoFocus
-                  className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded px-1.5 py-0.5 text-xs text-zinc-900 dark:text-zinc-100 outline-none w-24"
-                />
-                <button type="submit" className="text-zinc-700 dark:text-zinc-300 font-medium">저장</button>
-              </form>
-            ) : (
-              <button
-                onClick={() => setIsEditingNick(true)}
-                className="hover:text-zinc-900 dark:hover:text-zinc-100 transition flex items-center space-x-1 font-medium"
-                title="닉네임 변경"
-              >
-                <span>{nickname}</span>
-                <Edit2 className="w-3 h-3 text-zinc-400" />
-              </button>
-            )}
+            <button
+              onClick={onOpenNicknameModal || (() => setIsEditingNick(true))}
+              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition flex items-center space-x-1 font-medium cursor-pointer"
+              title="닉네임 변경 및 확인"
+            >
+              <span>{nickname}</span>
+              <Edit2 className="w-3 h-3 text-zinc-400" />
+            </button>
           </div>
         </div>
 
