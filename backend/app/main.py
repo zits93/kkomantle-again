@@ -38,6 +38,15 @@ def health_check():
 def get_hall_of_fame():
     return hall_of_fame_service.get_leaderboard()
 
+@app.get("/api/game-state")
+def get_current_game_state():
+    return {
+        "roundId": game_state.round_id,
+        "allGuesses": game_state.get_guesses_for_round(),
+        "activeUsers": len(connection_manager.active_connections),
+        "solvedBy": game_state.solved_by
+    }
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     conn_id = f"conn_{uuid.uuid4().hex[:8]}"
@@ -72,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     },
                     "hallOfFame": hall_of_fame_service.get_leaderboard(),
                     "chatHistory": chat_service.get_history(),
-                    "allGuesses": game_state.all_guesses[:100]
+                    "allGuesses": game_state.get_guesses_for_round()
                 }
                 await connection_manager.send_personal(conn_id, init_data)
 

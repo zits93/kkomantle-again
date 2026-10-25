@@ -3,7 +3,7 @@ import { User, GuessItem, ChatMessage, HallOfFameEntry, VoteState } from '../typ
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/sounds';
 
-// Default mock dictionary for instant client-side standalone capability (Fallback)
+// Default mock dictionary for instant client-side standalone capability
 const FALLBACK_SECRET_WORDS = [
   '우주', '인공지능', '사과', '행복', '바다', '고양이', '시간', '커피', '음악', '여름',
   '겨울', '사랑', '비행기', '도서관', '컴퓨터', '영화', '지구', '별빛', '모험', '친구'
@@ -13,10 +13,44 @@ export const useGameSocket = (backendUrl?: string) => {
   const [nickname, setNickname] = useState<string>(() => {
     return localStorage.getItem('kkomantle_nickname') || `탐험가_${Math.floor(1000 + Math.random() * 9000)}`;
   });
+
+  // Load persisted current roundId
+  const [roundId, setRoundId] = useState<string>(() => {
+    return localStorage.getItem('kkomantle_round_id') || 'round-1';
+  });
+
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
-  const [myGuesses, setMyGuesses] = useState<GuessItem[]>([]);
-  const [allGuesses, setAllGuesses] = useState<GuessItem[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Load persisted guesses for the current round
+  const [allGuesses, setAllGuesses] = useState<GuessItem[]>(() => {
+    try {
+      const curRound = localStorage.getItem('kkomantle_round_id') || 'round-1';
+      const saved = localStorage.getItem(`kkomantle_all_guesses_${curRound}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [myGuesses, setMyGuesses] = useState<GuessItem[]>(() => {
+    try {
+      const curRound = localStorage.getItem('kkomantle_round_id') || 'round-1';
+      const saved = localStorage.getItem(`kkomantle_my_guesses_${curRound}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('kkomantle_chat_messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>(() => {
     try {
       const saved = localStorage.getItem('kkomantle_real_hall_of_fame');
@@ -25,23 +59,58 @@ export const useGameSocket = (backendUrl?: string) => {
       return [];
     }
   });
+
   const [voteState, setVoteState] = useState<VoteState>({
     activeUsers: 1,
     votes: 0,
     requiredVotes: 2,
     hasVoted: false,
   });
+
   const [isConnected, setIsConnected] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [revealedWord, setRevealedWord] = useState<string>('');
-  const [roundId, setRoundId] = useState<string>('round-1');
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
   const [previousRoundAnswer, setPreviousRoundAnswer] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
-  const secretWordRef = useRef<string>(FALLBACK_SECRET_WORDS[0]);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
-  // Persist nickname
+  // Standalone secret word initialized from localStorage
+  const secretWordRef = useRef<string>((() => {
+    const saved = localStorage.getItem('kkomantle_secret_word');
+    if (saved && FALLBACK_SECRET_WORDS.includes(saved)) {
+      return saved;
+    }
+    const initWord = FALLBACK_SECRET_WORDS[0];
+    localStorage.setItem('kkomantle_secret_word', initWord);
+    return initWord;
+  })());
+
+  // Helpers to atomically update state and localStorage
+  const saveAllGuesses = useCallback((updater: (prev: GuessItem[]) => GuessItem[], targetRound?: string) => {
+    setAllGuesses(prev => {
+      const next = updater(prev);
+      const rId = targetRound || localStorage.getItem('kkomantle_round_id') || 'round-1';
+      try {
+        localStorage.setItem(`kkomantle_all_guesses_${rId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const saveMyGuesses = useCallback((updater: (prev: GuessItem[]) => GuessItem[], targetRound?: string) => {
+    setMyGuesses(prev => {
+      const next = updater(prev);
+      const rId = targetRound || localStorage.getItem('kkomantle_round_id') || 'round-1';
+      try {
+        localStorage.setItem(`kkomantle_my_guesses_${rId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Update and persist nickname
   const updateNickname = (newNick: string) => {
     const trimmed = newNick.trim().slice(0, 12);
     if (!trimmed) return;
@@ -52,27 +121,98 @@ export const useGameSocket = (backendUrl?: string) => {
     }
   };
 
-  // Initial REST fetch for real Hall of Fame data from backend
+  // Cross-Tab Realtime Synchronization via BroadcastChannel
   useEffect(() => {
-    const fetchRealLeaderboard = async () => {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel('kkomantle_cross_tab_sync');
+      channelRef.current = ch;
+
+      ch.onmessage = (event) => {
+        const data = event.data;
+        if (!data) return;
+
+        if (data.type === 'SYNC_NEW_GUESS' && data.guess) {
+          const item: GuessItem = data.guess;
+          saveAllGuesses(prev => {
+            if (prev.some(g => g.id === item.id || (g.word === item.word && g.nickname === item.nickname))) {
+              return prev;
+            }
+            return [item, ...prev];
+          }, data.roundId);
+
+          if (item.nickname === nickname) {
+            saveMyGuesses(prev => {
+              if (prev.some(g => g.id === item.id || g.word === item.word)) return prev;
+              return [item, ...prev.filter(g => g.word !== item.word)].sort((a,b) => b.similarity - a.similarity);
+            }, data.roundId);
+          }
+        } else if (data.type === 'SYNC_ROUND_RESET') {
+          setRoundId(data.roundId);
+          localStorage.setItem('kkomantle_round_id', data.roundId);
+          if (data.newSecretWord) {
+            secretWordRef.current = data.newSecretWord;
+            localStorage.setItem('kkomantle_secret_word', data.newSecretWord);
+          }
+          setMyGuesses([]);
+          setAllGuesses([]);
+          setIsAnswerRevealed(false);
+          setRevealedWord('');
+          setVoteState(prev => ({ ...prev, votes: 0, hasVoted: false }));
+          if (data.previousAnswer) {
+            setPreviousRoundAnswer(data.previousAnswer);
+          }
+        } else if (data.type === 'SYNC_CHAT' && data.message) {
+          setChatMessages(prev => {
+            const next = [...prev, data.message].slice(-300);
+            try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(next)); } catch {}
+            return next;
+          });
+        }
+      };
+
+      return () => {
+        ch.close();
+      };
+    }
+  }, [nickname, saveAllGuesses, saveMyGuesses]);
+
+  // Initial REST fetch for real server state (game-state & hall-of-fame)
+  useEffect(() => {
+    const fetchServerState = async () => {
       try {
-        const httpUrl = backendUrl
+        const baseHttp = backendUrl
           ? backendUrl.replace('ws://', 'http://').replace('wss://', 'https://')
-          : (window.location.protocol === 'https:' ? `${window.location.origin}/api/hall-of-fame` : `http://${window.location.hostname}:8000/api/hall-of-fame`);
-        const res = await fetch(httpUrl);
-        if (res.ok) {
-          const data = await res.json();
+          : (window.location.protocol === 'https:' ? window.location.origin : `http://${window.location.hostname}:8000`);
+
+        // 1. Fetch Hall of Fame
+        const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`);
+        if (hofRes.ok) {
+          const data = await hofRes.json();
           if (Array.isArray(data)) {
             setHallOfFame(data);
             localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
           }
         }
+
+        // 2. Fetch Active Game State & All Guesses for current round
+        const stateRes = await fetch(`${baseHttp}/api/game-state`);
+        if (stateRes.ok) {
+          const gameState = await stateRes.json();
+          if (gameState.roundId) {
+            setRoundId(gameState.roundId);
+            localStorage.setItem('kkomantle_round_id', gameState.roundId);
+          }
+          if (Array.isArray(gameState.allGuesses)) {
+            saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
+          }
+        }
       } catch {
-        // Fallback to local storage (already loaded)
+        // Fallback to local storage (already loaded in useState initializers)
       }
     };
-    fetchRealLeaderboard();
-  }, [backendUrl]);
+
+    fetchServerState();
+  }, [backendUrl, saveAllGuesses]);
 
   // WebSocket connection management
   useEffect(() => {
@@ -106,7 +246,6 @@ export const useGameSocket = (backendUrl?: string) => {
 
         ws.onclose = () => {
           setIsConnected(false);
-          // Fallback to local offline mode
           retryTimer = setTimeout(connect, 4000);
         };
 
@@ -131,17 +270,24 @@ export const useGameSocket = (backendUrl?: string) => {
   const handleIncomingMessage = (data: any) => {
     switch (data.type) {
       case 'init':
-      case 'sync_state':
+      case 'sync_state': {
         setRoundId(data.roundId);
+        localStorage.setItem('kkomantle_round_id', data.roundId);
         setActiveUsers(data.activeUsers || []);
         setVoteState(data.voteState || { activeUsers: 1, votes: 0, requiredVotes: 2, hasVoted: false });
         if (data.hallOfFame) {
           setHallOfFame(data.hallOfFame);
           localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data.hallOfFame));
         }
-        if (data.chatHistory) setChatMessages(data.chatHistory);
-        if (data.allGuesses) setAllGuesses(data.allGuesses);
+        if (data.chatHistory) {
+          setChatMessages(data.chatHistory);
+          try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(data.chatHistory)); } catch {}
+        }
+        if (Array.isArray(data.allGuesses)) {
+          saveAllGuesses(() => data.allGuesses, data.roundId);
+        }
         break;
+      }
 
       case 'user_list':
         setActiveUsers(data.users);
@@ -154,19 +300,22 @@ export const useGameSocket = (backendUrl?: string) => {
 
       case 'new_guess': {
         const item: GuessItem = data.guess;
-        setAllGuesses(prev => [item, ...prev]);
+        saveAllGuesses(prev => {
+          if (prev.some(g => g.id === item.id || (g.word === item.word && g.nickname === item.nickname))) {
+            return prev;
+          }
+          return [item, ...prev];
+        });
         if (item.nickname === nickname) {
-          setMyGuesses(prev => [item, ...prev.filter(g => g.word !== item.word)].sort((a,b) => b.similarity - a.similarity));
+          saveMyGuesses(prev => [item, ...prev.filter(g => g.word !== item.word)].sort((a,b) => b.similarity - a.similarity));
         }
         break;
       }
 
       case 'win_event': {
-        // Winner event handling
         const isSelf = data.winnerNickname === nickname;
         setLastWinAlert({ winner: data.winnerNickname, isSelf });
 
-        // Confetti for both
         confetti({
           particleCount: isSelf ? 150 : 60,
           spread: isSelf ? 100 : 60,
@@ -179,16 +328,20 @@ export const useGameSocket = (backendUrl?: string) => {
           setIsAnswerRevealed(true);
           setRevealedWord(data.answerWord || '정답');
         } else {
-          // 남이 맞춘 경우: 정답 단어는 비공개 유지!
           sound.playSimilarityTone(90);
         }
         break;
       }
 
-      case 'round_reset':
+      case 'round_reset': {
         setRoundId(data.roundId);
+        localStorage.setItem('kkomantle_round_id', data.roundId);
         setMyGuesses([]);
         setAllGuesses([]);
+        try {
+          localStorage.removeItem(`kkomantle_all_guesses_${data.roundId}`);
+          localStorage.removeItem(`kkomantle_my_guesses_${data.roundId}`);
+        } catch {}
         setIsAnswerRevealed(false);
         setRevealedWord('');
         setVoteState(prev => ({ ...prev, votes: 0, hasVoted: false }));
@@ -196,11 +349,13 @@ export const useGameSocket = (backendUrl?: string) => {
           setPreviousRoundAnswer(data.previousAnswer);
         }
         break;
+      }
 
       case 'chat_message':
         setChatMessages(prev => {
-          const updated = [...prev, data.message];
-          return updated.slice(-300); // 300 cap
+          const updated = [...prev, data.message].slice(-300);
+          try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(updated)); } catch {}
+          return updated;
         });
         break;
 
@@ -218,10 +373,9 @@ export const useGameSocket = (backendUrl?: string) => {
     }
   };
 
-  // Client-side fallback similarity calculation (Levensthein + semantic char ngram)
+  // Client-side fallback similarity calculation
   const calcFallbackSimilarity = (guess: string, target: string): number => {
     if (guess === target) return 100.0;
-    // N-gram + common character Jaccard index
     const s1 = new Set(guess);
     const s2 = new Set(target);
     let intersection = 0;
@@ -229,7 +383,6 @@ export const useGameSocket = (backendUrl?: string) => {
     const union = new Set([...s1, ...s2]).size;
     const charSim = (intersection / (union || 1)) * 40;
 
-    // Simulated semantic distance
     let hash = 0;
     const combined = guess + target;
     for (let i = 0; i < combined.length; i++) {
@@ -252,11 +405,11 @@ export const useGameSocket = (backendUrl?: string) => {
 
     // Offline / Standalone Mock fallback
     const target = secretWordRef.current;
-    const isAnswer = trimmed === target;
+    const isAnswer = (trimmed === target);
     const similarity = isAnswer ? 100.0 : calcFallbackSimilarity(trimmed, target);
 
     const guessItem: GuessItem = {
-      id: `${Date.now()}-${Math.random()}`,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       userId: 'local-me',
       nickname,
       word: trimmed,
@@ -267,8 +420,17 @@ export const useGameSocket = (backendUrl?: string) => {
       rank: similarity > 95 ? 1 : similarity > 80 ? 45 : similarity > 60 ? 320 : undefined
     };
 
-    setMyGuesses(prev => [guessItem, ...prev.filter(g => g.word !== trimmed)].sort((a,b) => b.similarity - a.similarity));
-    setAllGuesses(prev => [guessItem, ...prev]);
+    saveMyGuesses(prev => [guessItem, ...prev.filter(g => g.word !== trimmed)].sort((a,b) => b.similarity - a.similarity));
+    saveAllGuesses(prev => [guessItem, ...prev]);
+
+    // Broadcast across tabs so other tabs see it immediately!
+    if (channelRef.current) {
+      channelRef.current.postMessage({
+        type: 'SYNC_NEW_GUESS',
+        guess: guessItem,
+        roundId
+      });
+    }
 
     if (isAnswer) {
       confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
@@ -305,21 +467,53 @@ export const useGameSocket = (backendUrl?: string) => {
     // Standalone fallback
     const prevTarget = secretWordRef.current;
     const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
-    secretWordRef.current = FALLBACK_SECRET_WORDS[nextIdx];
-    setRoundId(`round-${Date.now()}`);
+    const newWord = FALLBACK_SECRET_WORDS[nextIdx];
+    const newRoundId = `round-${Date.now()}`;
+
+    secretWordRef.current = newWord;
+    localStorage.setItem('kkomantle_secret_word', newWord);
+    setRoundId(newRoundId);
+    localStorage.setItem('kkomantle_round_id', newRoundId);
+
     setMyGuesses([]);
     setAllGuesses([]);
+    try {
+      localStorage.removeItem(`kkomantle_all_guesses_${newRoundId}`);
+      localStorage.removeItem(`kkomantle_my_guesses_${newRoundId}`);
+    } catch {}
+
     setIsAnswerRevealed(false);
     setRevealedWord('');
     setVoteState(prev => ({ ...prev, votes: 0, hasVoted: false }));
     setPreviousRoundAnswer(prevTarget);
-    setChatMessages(prev => [...prev, {
+
+    const resetMsg: ChatMessage = {
       id: `sys-${Date.now()}`,
       type: 'notice',
       sender: '시스템',
       text: `🔄 라운드 종료! 이전 정답은 [${prevTarget}] 였습니다. 새로운 단어로 시작합니다!`,
       timestamp: Date.now()
-    }]);
+    };
+
+    setChatMessages(prev => {
+      const updated = [...prev, resetMsg].slice(-300);
+      try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    // Broadcast reset to other tabs
+    if (channelRef.current) {
+      channelRef.current.postMessage({
+        type: 'SYNC_ROUND_RESET',
+        roundId: newRoundId,
+        previousAnswer: prevTarget,
+        newSecretWord: newWord
+      });
+      channelRef.current.postMessage({
+        type: 'SYNC_CHAT',
+        message: resetMsg
+      });
+    }
   };
 
   // Send Chat message
@@ -336,25 +530,56 @@ export const useGameSocket = (backendUrl?: string) => {
     if (type === 'answer_reveal') {
       const prevTarget = secretWordRef.current;
       const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
-      secretWordRef.current = FALLBACK_SECRET_WORDS[nextIdx];
-      setRoundId(`round-${Date.now()}`);
+      const newWord = FALLBACK_SECRET_WORDS[nextIdx];
+      const newRoundId = `round-${Date.now()}`;
+
+      secretWordRef.current = newWord;
+      localStorage.setItem('kkomantle_secret_word', newWord);
+      setRoundId(newRoundId);
+      localStorage.setItem('kkomantle_round_id', newRoundId);
+
       setMyGuesses([]);
       setAllGuesses([]);
+      try {
+        localStorage.removeItem(`kkomantle_all_guesses_${newRoundId}`);
+        localStorage.removeItem(`kkomantle_my_guesses_${newRoundId}`);
+      } catch {}
+
       setIsAnswerRevealed(false);
       setRevealedWord('');
       setPreviousRoundAnswer(prevTarget);
-      setChatMessages(prev => [...prev, {
+
+      const revealMsg: ChatMessage = {
         id: `sys-${Date.now()}`,
         type: 'notice',
         sender: '시스템',
         text: `📢 ${nickname}님의 요청으로 정답이 공개되었습니다: [${prevTarget}] (새 단어로 교체됩니다)`,
         timestamp: Date.now()
-      }]);
+      };
+
+      setChatMessages(prev => {
+        const updated = [...prev, revealMsg].slice(-300);
+        try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+
+      if (channelRef.current) {
+        channelRef.current.postMessage({
+          type: 'SYNC_ROUND_RESET',
+          roundId: newRoundId,
+          previousAnswer: prevTarget,
+          newSecretWord: newWord
+        });
+        channelRef.current.postMessage({
+          type: 'SYNC_CHAT',
+          message: revealMsg
+        });
+      }
       return;
     }
 
     const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}-${Math.random()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       type,
       sender: nickname,
       text: trimmed,
@@ -362,7 +587,18 @@ export const useGameSocket = (backendUrl?: string) => {
       isSelf: true,
     };
 
-    setChatMessages(prev => [...prev.slice(-299), newMsg]);
+    setChatMessages(prev => {
+      const next = [...prev.slice(-299), newMsg];
+      try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(next)); } catch {}
+      return next;
+    });
+
+    if (channelRef.current) {
+      channelRef.current.postMessage({
+        type: 'SYNC_CHAT',
+        message: newMsg
+      });
+    }
   };
 
   return {
