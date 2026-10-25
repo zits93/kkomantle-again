@@ -1,124 +1,126 @@
 import os
-import json
+import csv
+import re
 import numpy as np
-import requests
 from typing import Dict, Any, Optional
 from app.config import settings
 
 class EmbeddingService:
-    def __init__(self, words_file: str = settings.WORDS_FILE):
+    def __init__(
+        self,
+        fasttext_path: str = settings.FASTTEXT_MODEL_PATH,
+        kengdic_path: str = settings.KENGDIC_PATH,
+        words_file: str = settings.WORDS_FILE
+    ):
+        self.fasttext_path = fasttext_path
+        self.kengdic_path = kengdic_path
         self.words_file = words_file
-        self.vocab: Dict[str, Dict[str, Any]] = {}
-        self.dim = 384
-        self.load_vocab()
+        self.dim = 200
 
-        # In-memory LRU cache for normalized unit vectors
+        self._model = None
+        self._initialized = False
+        self.en_to_ko: Dict[str, str] = {}
         self._cache: Dict[str, np.ndarray] = {}
         self._max_cache_size = 100000
-        self._model = None
-        self._tokenizer = None
-        self._device = None
-        self._initialized = False
 
-    def load_vocab(self):
-        if os.path.exists(self.words_file):
-            try:
-                with open(self.words_file, "r", encoding="utf-8") as f:
-                    self.vocab = json.load(f)
-            except Exception as e:
-                print(f"Failed to load vocab: {e}")
-                self.vocab = {}
+        self._load_dictionary()
 
-    def _init_neural_model(self):
-        """Lazy load multilingual cross-lingual embedding model with optimal CPU threading."""
+    def _load_dictionary(self):
+        """Load kengdic offline English-to-Korean mapping for zero-latency bilingual input."""
+        if not os.path.exists(self.kengdic_path):
+            return
+
+        try:
+            candidates: Dict[str, list] = {}
+            with open(self.kengdic_path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f, delimiter="\t")
+                _ = next(reader, None)
+                for row in reader:
+                    if len(row) >= 5:
+                        ko = row[1].strip()
+                        gloss = row[3].strip()
+                        level = row[4].strip()
+                        for part in gloss.split(","):
+                            clean_part = re.sub(r'^(a|an|the)\s+', '', part.split(';')[0], flags=re.IGNORECASE)
+                            clean_part = re.sub(r'\(.*?\)', '', clean_part).strip().lower()
+                            if clean_part and len(clean_part) < 30:
+                                candidates.setdefault(clean_part, []).append((ko, level))
+
+            level_priority = {'A': 4, 'B': 3, 'C': 2, '': 1}
+            for eng, ko_list in candidates.items():
+                ko_list.sort(key=lambda x: (level_priority.get(x[1], 0), -len(x[0])), reverse=True)
+                self.en_to_ko[eng] = ko_list[0][0]
+
+            # High-priority accurate overrides for common gameplay words
+            overrides = {
+                'cat': '고양이',
+                'cats': '고양이',
+                'space': '우주',
+                'dog': '개',
+                'dogs': '개',
+                'water': '물',
+                'apple': '사과',
+                'apples': '사과',
+                'book': '책',
+                'books': '책',
+                'star': '별',
+                'stars': '별',
+                'universe': '우주',
+                'love': '사랑',
+                'cement': '시멘트',
+                'sock': '양말',
+                'socks': '양말',
+                'computer': '컴퓨터',
+                'computers': '컴퓨터',
+                'rocket': '로켓',
+                'banana': '바나나',
+                'airplane': '비행기',
+                'plane': '비행기',
+                'squid': '오징어',
+                'democracy': '민주주의',
+                'philosophy': '철학'
+            }
+            self.en_to_ko.update(overrides)
+            print(f"📖 Loaded {len(self.en_to_ko)} English-Korean translation pairs.")
+        except Exception as e:
+            print(f"Failed to load kengdic: {e}")
+
+    def _init_fasttext(self):
+        """Lazy load FastText binary model."""
         if self._initialized:
             return
         self._initialized = True
-        try:
-            import torch
-            from transformers import AutoTokenizer, AutoModel
 
-            # Optimize CPU threads for parallel inference without lock contention
-            threads = min(4, os.cpu_count() or 4)
-            torch.set_num_threads(threads)
-
-            model_id = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-            self._tokenizer = AutoTokenizer.from_pretrained(model_id)
-            self._model = AutoModel.from_pretrained(model_id)
-            self._device = "cpu"
-            self._model = self._model.to(self._device)
-            self._model.eval()
-
-            # Warmup model graph
-            warmup_inp = self._tokenizer("warmup", return_tensors="pt").to(self._device)
-            with torch.inference_mode():
-                self._model(**warmup_inp)
-
-            print(f"✅ Multilingual neural embedding engine initialized on {self._device} ({threads} threads, warm)!")
-        except Exception as e:
-            print(f"Direct multilingual model loading failed: {e}")
+        if os.path.exists(self.fasttext_path):
+            try:
+                from gensim.models.fasttext import load_facebook_model
+                print(f"Loading FastText model from {self.fasttext_path}...")
+                self._model = load_facebook_model(self.fasttext_path)
+                print(f"✅ FastText model successfully loaded (dim=200)!")
+            except Exception as e:
+                print(f"Failed to load FastText: {e}")
+                self._model = None
+        else:
+            print(f"⚠️ FastText model not found at {self.fasttext_path}")
             self._model = None
 
     def warmup(self):
-        """Proactively initialize model on server startup to eliminate cold-start lag."""
-        self._init_neural_model()
+        """Proactively initialize FastText on server startup to eliminate cold-start lag."""
+        self._init_fasttext()
 
-    def _get_direct_neural_embedding(self, word: str) -> Optional[np.ndarray]:
-        """Compute semantic embedding with fast inference_mode and mean-pooling."""
-        word_key = word.strip().lower()
-        if word_key in self._cache:
-            return self._cache[word_key]
-
-        self._init_neural_model()
-        if self._model is None or self._tokenizer is None:
-            return None
-
-        try:
-            import torch
-            inputs = self._tokenizer(word, return_tensors="pt", padding=True, truncation=True).to(self._device)
-            with torch.inference_mode():
-                outputs = self._model(**inputs)
-                mask = inputs["attention_mask"].unsqueeze(-1).expand(outputs.last_hidden_state.size()).float()
-                sum_emb = torch.sum(outputs.last_hidden_state * mask, 1)
-                sum_mask = torch.clamp(mask.sum(1), min=1e-9)
-                vec = (sum_emb / sum_mask).squeeze().float().cpu().numpy()
-                norm = np.linalg.norm(vec)
-                norm_vec = vec / (norm + 1e-9)
-
-                # Cache eviction safeguard
-                if len(self._cache) >= self._max_cache_size:
-                    # Prune first 20%
-                    keys_to_remove = list(self._cache.keys())[:20000]
-                    for k in keys_to_remove:
-                        self._cache.pop(k, None)
-
-                self._cache[word_key] = norm_vec
-                return norm_vec
-        except Exception as e:
-            print(f"Multilingual embedding error for '{word}': {e}")
-            return None
-
-    def _try_ollama_embedding(self, word: str) -> Optional[np.ndarray]:
-        """Fallback to Ollama REST API if Ollama daemon is running."""
-        try:
-            url = f"{settings.OLLAMA_HOST}/api/embeddings"
-            payload = {
-                "model": settings.QWEN_MODEL_NAME,
-                "prompt": word
-            }
-            res = requests.post(url, json=payload, timeout=0.8)
-            if res.status_code == 200:
-                data = res.json()
-                emb = np.array(data.get("embedding", []), dtype=np.float32)
-                if len(emb) > 0:
-                    norm = np.linalg.norm(emb)
-                    return emb / (norm + 1e-9)
-        except Exception:
-            pass
-        return None
+    def translate_to_korean(self, word: str) -> str:
+        """Map foreign / English input to Korean equivalent if applicable."""
+        w = word.strip().lower()
+        if w in self.en_to_ko:
+            return self.en_to_ko[w]
+        if w.endswith('s') and w[:-1] in self.en_to_ko:
+            return self.en_to_ko[w[:-1]]
+        if w.endswith('es') and w[:-2] in self.en_to_ko:
+            return self.en_to_ko[w[:-2]]
+        return word.strip()
 
     def _generate_oov_vector(self, word: str) -> np.ndarray:
-        """Deterministic sub-character fallback."""
+        """Deterministic sub-character fallback for unknown symbols."""
         np.random.seed(int(abs(hash(word)) % 1000000))
         vec = np.random.normal(0, 0.2, self.dim).astype(np.float32)
         norm = np.linalg.norm(vec)
@@ -130,45 +132,77 @@ class EmbeddingService:
         if word_key in self._cache:
             return self._cache[word_key]
 
-        # 1. Primary: Real multilingual neural embedding
-        vec = self._get_direct_neural_embedding(word)
-        if vec is not None:
-            return vec
+        self._init_fasttext()
 
-        # 2. Secondary: Ollama daemon
-        ollama_vec = self._try_ollama_embedding(word)
-        if ollama_vec is not None:
-            return ollama_vec
+        # If foreign / English, resolve to Korean first
+        ko_word = self.translate_to_korean(word)
+        if ko_word in self._cache:
+            return self._cache[ko_word]
 
-        # 3. Check precomputed vocab
-        if word in self.vocab:
-            return np.array(self.vocab[word]["vector"], dtype=np.float32)
+        if self._model is not None:
+            try:
+                raw_vec = self._model.wv[ko_word]
+                norm = np.linalg.norm(raw_vec)
+                if norm > 0.05:
+                    unit_vec = (raw_vec / (norm + 1e-9)).astype(np.float32)
+                else:
+                    unit_vec = self._generate_oov_vector(ko_word)
 
-        # 4. Fallback vector
-        return self._generate_oov_vector(word)
+                if len(self._cache) >= self._max_cache_size:
+                    for k in list(self._cache.keys())[:20000]:
+                        self._cache.pop(k, None)
+
+                self._cache[word_key] = unit_vec
+                self._cache[ko_word] = unit_vec
+                return unit_vec
+            except Exception as e:
+                print(f"FastText vector error for '{word}': {e}")
+
+        vec = self._generate_oov_vector(word)
+        self._cache[word_key] = vec
+        return vec
+
+    def _scale_similarity(self, dot: float) -> float:
+        """Authentic Semantle progressive scaling curve from raw cosine to [0, 100] % score."""
+        if dot <= 0:
+            return 0.0
+        if dot <= 0.05:
+            return round(max(0.0, dot * 40.0), 1)
+        if dot <= 0.20:
+            return round(2.0 + (dot - 0.05) / 0.15 * 18.0, 1)
+        if dot <= 0.50:
+            t = (dot - 0.20) / 0.30
+            return round(20.0 + (t ** 0.85) * 40.0, 1)
+        # dot > 0.50
+        t = min(1.0, (dot - 0.50) / 0.50)
+        return round(min(99.4, 60.0 + (t ** 0.8) * 39.4), 1)
 
     def calculate_similarity_to_target_vector(self, word: str, target_vector: np.ndarray, target_word: str) -> float:
         """Ultra-fast O(1) similarity calculation using pre-normalized target vector."""
-        if word.strip().lower() == target_word.strip().lower():
+        w1 = word.strip().lower()
+        w2 = target_word.strip().lower()
+        t1 = self.translate_to_korean(w1)
+        t2 = self.translate_to_korean(w2)
+
+        if w1 == w2 or t1 == t2 or t1 == w2:
             return 100.0
 
         vec_a = self.get_vector(word)
-        # Both vectors are L2-normalized unit vectors -> dot product is exactly cosine!
         dot = float(np.dot(vec_a, target_vector))
-        if dot >= 0:
-            return round(min(99.4, (dot ** 0.85) * 100.0), 1)
-        return 0.0
+        return self._scale_similarity(dot)
 
     def calculate_similarity(self, word_a: str, word_b: str) -> float:
-        if word_a.strip().lower() == word_b.strip().lower():
+        w1 = word_a.strip().lower()
+        w2 = word_b.strip().lower()
+        t1 = self.translate_to_korean(w1)
+        t2 = self.translate_to_korean(w2)
+
+        if w1 == w2 or t1 == t2 or t1 == w2:
             return 100.0
 
         vec_a = self.get_vector(word_a)
         vec_b = self.get_vector(word_b)
-
         dot = float(np.dot(vec_a, vec_b))
-        if dot >= 0:
-            return round(min(99.4, (dot ** 0.85) * 100.0), 1)
-        return 0.0
+        return self._scale_similarity(dot)
 
 embedding_service = EmbeddingService()

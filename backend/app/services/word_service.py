@@ -78,7 +78,8 @@ class WordService:
     ) -> Dict[str, Any]:
         """Parallel, vector-accelerated guess evaluation."""
         guess = guess.strip()
-        is_answer = (guess.lower() == target.lower())
+        translated = embedding_service.translate_to_korean(guess)
+        is_answer = (guess.lower() == target.lower() or translated.lower() == target.lower())
         
         if is_answer:
             similarity = 100.0

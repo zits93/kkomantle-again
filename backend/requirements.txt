@@ -5,3 +5,5 @@ numpy>=1.26.0
 python-multipart>=0.0.9
 requests>=2.31.0
 aiofiles>=24.1.0
+gensim>=4.3.0
+kiwipiepy>=0.17.0

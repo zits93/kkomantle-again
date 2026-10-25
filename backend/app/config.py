@@ -7,6 +7,8 @@ class Settings:
     CORS_ORIGINS: list[str] = ["*"]
     DB_PATH: str = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "data", "hall_of_fame.db"))
     WORDS_FILE: str = os.getenv("WORDS_FILE", os.path.join(os.path.dirname(__file__), "..", "data", "words.json"))
+    FASTTEXT_MODEL_PATH: str = os.getenv("FASTTEXT_MODEL_PATH", os.path.join(os.path.dirname(__file__), "..", "data", "models", "ko.bin"))
+    KENGDIC_PATH: str = os.getenv("KENGDIC_PATH", os.path.join(os.path.dirname(__file__), "..", "data", "kengdic.tsv"))
     MAX_CHAT_HISTORY: int = 300
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     QWEN_MODEL_NAME: str = os.getenv("QWEN_MODEL_NAME", "qwen2.5:1.5b")
