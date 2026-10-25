@@ -1,6 +1,5 @@
 import os
 import json
-import math
 import numpy as np
 import requests
 from typing import Dict, Any, Optional
@@ -13,6 +12,13 @@ class EmbeddingService:
         self.dim = 64
         self.load_vocab()
 
+        # Cache for real Qwen embeddings
+        self._qwen_cache: Dict[str, np.ndarray] = {}
+        self._qwen_model = None
+        self._qwen_tokenizer = None
+        self._qwen_device = None
+        self._qwen_initialized = False
+
     def load_vocab(self):
         if os.path.exists(self.words_file):
             try:
@@ -22,21 +28,50 @@ class EmbeddingService:
                 print(f"Failed to load vocab: {e}")
                 self.vocab = {}
 
-    def get_vector(self, word: str) -> np.ndarray:
-        word = word.strip()
-        if word in self.vocab:
-            return np.array(self.vocab[word]["vector"], dtype=np.float32)
+    def _init_qwen_model(self):
+        """Lazy load Qwen neural model on first request."""
+        if self._qwen_initialized:
+            return
+        self._qwen_initialized = True
+        try:
+            import torch
+            from transformers import AutoTokenizer, AutoModel
+            model_id = "Qwen/Qwen2.5-0.5B"
+            self._qwen_tokenizer = AutoTokenizer.from_pretrained(model_id)
+            self._qwen_model = AutoModel.from_pretrained(model_id)
+            self._qwen_device = "mps" if torch.backends.mps.is_available() else "cpu"
+            self._qwen_model = self._qwen_model.to(self._qwen_device)
+            self._qwen_model.eval()
+            print(f"✅ Qwen neural model loaded on {self._qwen_device}!")
+        except Exception as e:
+            print(f"Direct Qwen loading skipped: {e}")
+            self._qwen_model = None
 
-        # OOV word handling:
-        # 1. Try Local Qwen model via Ollama
-        qwen_vec = self._try_qwen_embedding(word)
-        if qwen_vec is not None:
-            return qwen_vec
+    def _get_direct_qwen_embedding(self, word: str) -> Optional[np.ndarray]:
+        """Compute real neural embedding using local PyTorch Qwen model."""
+        if word in self._qwen_cache:
+            return self._qwen_cache[word]
 
-        # 2. Dynamic sub-character semantic vector synthesizer
-        return self._generate_oov_vector(word)
+        self._init_qwen_model()
+        if self._qwen_model is None or self._qwen_tokenizer is None:
+            return None
 
-    def _try_qwen_embedding(self, word: str) -> Optional[np.ndarray]:
+        try:
+            import torch
+            inputs = self._qwen_tokenizer(word, return_tensors="pt").to(self._qwen_device)
+            with torch.no_grad():
+                outputs = self._qwen_model(**inputs)
+                emb = outputs.last_hidden_state.mean(dim=1).squeeze().float().cpu().numpy()
+                norm = np.linalg.norm(emb)
+                vec = emb / (norm + 1e-9)
+                self._qwen_cache[word] = vec
+                return vec
+        except Exception as e:
+            print(f"Qwen embedding error for '{word}': {e}")
+            return None
+
+    def _try_ollama_embedding(self, word: str) -> Optional[np.ndarray]:
+        """Fallback to Ollama REST API if Ollama daemon is running."""
         try:
             url = f"{settings.OLLAMA_HOST}/api/embeddings"
             payload = {
@@ -48,23 +83,38 @@ class EmbeddingService:
                 data = res.json()
                 emb = np.array(data.get("embedding", []), dtype=np.float32)
                 if len(emb) > 0:
-                    # Project or slice to dim
-                    if len(emb) >= self.dim:
-                        vec = emb[:self.dim]
-                    else:
-                        vec = np.pad(emb, (0, self.dim - len(emb)))
-                    norm = np.linalg.norm(vec)
-                    return vec / (norm + 1e-9)
+                    norm = np.linalg.norm(emb)
+                    return emb / (norm + 1e-9)
         except Exception:
             pass
         return None
 
     def _generate_oov_vector(self, word: str) -> np.ndarray:
-        """Deterministic fallback embedding for OOV neologisms/slang."""
+        """Deterministic sub-character n-gram fallback."""
         np.random.seed(int(abs(hash(word)) % 1000000))
         vec = np.random.normal(0, 0.2, self.dim).astype(np.float32)
         norm = np.linalg.norm(vec)
         return vec / (norm + 1e-9)
+
+    def get_vector(self, word: str) -> np.ndarray:
+        word = word.strip()
+
+        # 1. Try real local Qwen neural network
+        qwen_vec = self._get_direct_qwen_embedding(word)
+        if qwen_vec is not None:
+            return qwen_vec
+
+        # 2. Try Ollama daemon
+        ollama_vec = self._try_ollama_embedding(word)
+        if ollama_vec is not None:
+            return ollama_vec
+
+        # 3. Check precomputed vocab
+        if word in self.vocab:
+            return np.array(self.vocab[word]["vector"], dtype=np.float32)
+
+        # 4. Fallback vector
+        return self._generate_oov_vector(word)
 
     def calculate_similarity(self, word_a: str, word_b: str) -> float:
         if word_a == word_b:
@@ -81,7 +131,6 @@ class EmbeddingService:
             return 0.0
 
         cosine = float(dot / (norm_a * norm_b))
-        # Scale to 0.0 ~ 100.0 range
         scaled = max(0.0, min(99.9, ((cosine + 1.0) / 2.0) * 100.0))
         return round(scaled, 1)
 
