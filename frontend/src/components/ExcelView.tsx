@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GuessItem, GameStats } from '../types/game';
 import { Check, X, Plus, ChevronLeft, ChevronRight, Sliders, Maximize2 } from 'lucide-react';
 import { getRankTierInfo } from './GuessList';
+import { useSortedGuesses } from '../hooks/useSortedGuesses';
 
 interface ExcelViewProps {
   myGuesses: GuessItem[];
@@ -25,16 +26,7 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
   const [inputFormula, setInputFormula] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const displayList = React.useMemo(() => {
-    const list = [...allGuesses];
-    if (activeSheet === 'similarity') {
-      return list.sort((a, b) => {
-        if (b.similarity !== a.similarity) return b.similarity - a.similarity;
-        return b.timestamp - a.timestamp;
-      });
-    }
-    return list.sort((a, b) => b.timestamp - a.timestamp);
-  }, [allGuesses, activeSheet]);
+  const displayList = useSortedGuesses(allGuesses, activeSheet);
 
   // Real Excel Column letters: A through K
   const columns = [

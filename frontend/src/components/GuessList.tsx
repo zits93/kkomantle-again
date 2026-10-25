@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { GuessItem, GameStats } from '../types/game';
 import { Globe, User, CheckCircle2 } from 'lucide-react';
-
-export type SortMode = 'similarity' | 'recent';
+import { useSortedGuesses, SortMode } from '../hooks/useSortedGuesses';
+export type { SortMode };
 
 interface GuessListProps {
   allGuesses: GuessItem[];
@@ -88,18 +88,7 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
   const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
   const totalWords = gameStats?.totalWords ?? 119656;
 
-  const displayList = React.useMemo(() => {
-    const list = [...allGuesses];
-    if (sortMode === 'similarity') {
-      return list.sort((a, b) => {
-        if (b.similarity !== a.similarity) {
-          return b.similarity - a.similarity;
-        }
-        return b.timestamp - a.timestamp;
-      });
-    }
-    return list.sort((a, b) => b.timestamp - a.timestamp);
-  }, [allGuesses, sortMode]);
+  const displayList = useSortedGuesses(allGuesses, sortMode);
 
   // Excel Mode Table with Subtle Data Bars
   if (theme === 'excel') {
@@ -305,7 +294,7 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
                       {tier.rankText}
                     </span>
 
-                    <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400 font-semibold w-12 text-right">
+                    <span className="text-sm font-mono text-zinc-700 dark:text-zinc-200 font-bold min-w-[3.25rem] text-right">
                       {item.similarity.toFixed(1)}%
                     </span>
                   </div>

@@ -158,7 +158,7 @@ export const AppContent: React.FC = () => {
           gameStats={gameStats}
         />
       ) : (
-        <main className="flex-1 flex flex-col justify-start pb-24 md:pb-12">
+        <main className="flex-1 flex flex-col justify-start pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-12">
           {/* Word Input */}
           <WordInput onSubmit={handleWordSubmit} error={guessError} gameStats={gameStats} />
 
