@@ -126,9 +126,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 transition-colors">
       <div className="max-w-2xl mx-auto px-4 py-2.5 sm:py-3.5 flex items-center justify-between gap-3">
-        {/* Brand Title */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
+        {/* Brand Title (Left) */}
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex items-center space-x-2 shrink-0">
             <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               꼬맨틀 한번더
             </h1>
@@ -141,17 +141,29 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Nickname pill */}
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center pl-2 border-l border-zinc-200 dark:border-zinc-800">
+          {/* Desktop Nickname pill: next to title */}
+          <div className="hidden md:flex text-xs text-zinc-500 dark:text-zinc-400 items-center pl-2.5 border-l border-zinc-200 dark:border-zinc-800">
             <button
               onClick={onOpenNicknameModal || (() => setIsEditingNick(true))}
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition flex items-center space-x-1 font-medium cursor-pointer"
+              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition flex items-center space-x-1.5 font-medium cursor-pointer"
               title="닉네임 변경 및 확인"
             >
-              <span>{nickname}</span>
-              <Edit2 className="w-3 h-3 text-zinc-400" />
+              <span className="truncate max-w-[140px]">{nickname}</span>
+              <Edit2 className="w-3 h-3 text-zinc-400 shrink-0" />
             </button>
           </div>
+        </div>
+
+        {/* Mobile Right Nickname pill: Right-aligned on mobile */}
+        <div className="flex md:hidden items-center shrink-0">
+          <button
+            onClick={onOpenNicknameModal || (() => setIsEditingNick(true))}
+            className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition flex items-center space-x-1.5 text-xs font-medium cursor-pointer shadow-xs min-h-[32px]"
+            title="닉네임 변경 및 확인"
+          >
+            <span className="truncate max-w-[110px]">{nickname}</span>
+            <Edit2 className="w-3 h-3 text-zinc-400 shrink-0" />
+          </button>
         </div>
 
         {/* Desktop Actions (Hidden on Mobile; MobileBottomBar handles mobile) */}

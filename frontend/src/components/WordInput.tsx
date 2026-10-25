@@ -52,10 +52,10 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
             type="submit"
             disabled={!word.trim() || disabled}
             aria-label="단어 제출"
-            className="mr-2 px-3.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed font-medium text-xs flex items-center space-x-1 transition"
+            className="mr-2 px-3.5 h-8 min-w-[56px] shrink-0 whitespace-nowrap rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed font-medium text-xs flex items-center justify-center space-x-1 transition shadow-xs cursor-pointer"
           >
             <span>확인</span>
-            <CornerDownLeft className="w-3.5 h-3.5" />
+            <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
         {error && (

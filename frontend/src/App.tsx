@@ -113,27 +113,27 @@ export const AppContent: React.FC = () => {
       {/* Winner Notification Banner */}
       {lastWinAlert && (
         <div className="w-full max-w-2xl mx-auto my-3 px-4">
-          <div className={`p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm font-medium ${
+          <div className={`p-3 sm:p-4 rounded-xl border flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-xs ${
             lastWinAlert.isSelf
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
               : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
           }`}>
-            <span className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
               {lastWinAlert.isSelf ? (
                 <>
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>축하합니다! 정답을 맞추셨습니다!</span>
+                  <span className="leading-snug break-keep">축하합니다! 정답을 맞추셨습니다!</span>
                 </>
               ) : (
                 <>
                   <Volume2 className="w-4 h-4 text-zinc-500 shrink-0" />
-                  <span>{lastWinAlert.winner}님이 정답을 맞췄습니다!</span>
+                  <span className="leading-snug break-keep">{lastWinAlert.winner}님이 정답을 맞췄습니다!</span>
                 </>
               )}
-            </span>
+            </div>
             <button
               onClick={() => setLastWinAlert(null)}
-              className="ml-3 px-2 py-0.5 rounded-md text-xs border border-current opacity-70 hover:opacity-100 cursor-pointer"
+              className="shrink-0 min-w-[56px] h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border border-current opacity-80 hover:opacity-100 transition flex items-center justify-center cursor-pointer shadow-xs"
             >
               닫기
             </button>
@@ -144,16 +144,18 @@ export const AppContent: React.FC = () => {
       {/* Previous Round Answer Banner on Round Reset */}
       {previousRoundAnswer && (
         <div className="w-full max-w-2xl mx-auto my-2 px-4">
-          <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200 flex items-center justify-between text-xs sm:text-sm font-medium">
-            <span className="flex items-center space-x-1.5">
+          <div className="p-3 sm:p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-xs">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
               <Target className="w-4 h-4 text-zinc-500 shrink-0" />
-              <span>
-                이전 라운드 정답: <span className="font-semibold text-zinc-900 dark:text-zinc-100">[{previousRoundAnswer}]</span> (새로운 단어가 출제되었습니다)
-              </span>
-            </span>
+              <div className="leading-snug break-keep text-xs sm:text-sm">
+                <span>이전 라운드 정답: </span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">[{previousRoundAnswer}]</span>
+                <span className="text-zinc-500 dark:text-zinc-400 text-xs ml-1 block sm:inline font-normal">새로운 단어가 출제되었습니다</span>
+              </div>
+            </div>
             <button
               onClick={() => setPreviousRoundAnswer(null)}
-              className="ml-3 px-2 py-0.5 rounded-md text-xs border border-zinc-300 dark:border-zinc-700 opacity-70 hover:opacity-100 cursor-pointer"
+              className="shrink-0 min-w-[56px] h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center justify-center shadow-xs cursor-pointer"
             >
               확인
             </button>
