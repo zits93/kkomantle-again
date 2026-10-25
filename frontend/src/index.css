@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+}
+
+.dark {
   color-scheme: dark;
 }
 
@@ -10,36 +14,19 @@ body {
   margin: 0;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Glass Theme Background Effect */
-.glass-gradient-bg {
-  background: radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
-              radial-gradient(circle at 85% 25%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 50% 80%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
-              #090d16;
+/* Light Mode Clean Canvas */
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
-/* Glass Panel Utility */
-.glass-panel {
-  background: rgba(18, 24, 38, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-
-.glass-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-input:focus {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(129, 140, 248, 0.8);
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+/* Dark Mode Clean Canvas */
+.dark body {
+  background-color: #09090b;
+  color: #f4f4f5;
 }
 
 /* Excel Theme Styles */
@@ -55,7 +42,7 @@ body {
   border-bottom: 1px solid #e1dfdd;
 }
 
-/* Custom Scrollbar for Sleek Look */
+/* Minimalist Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -66,24 +53,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(148, 163, 184, 0.4);
   border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.4);
 }
 
 .excel-mode ::-webkit-scrollbar-thumb {
   background: #c8c6c4;
-}
-
-/* Screen shake animation class */
-@keyframes shake {
-  0% { transform: translate(1px, 1px) rotate(0deg); }
-  20% { transform: translate(-2px, -1px) rotate(-0.5deg); }
-  40% { transform: translate(-1px, 2px) rotate(0.5deg); }
-  60% { transform: translate(2px, 1px) rotate(0deg); }
-  80% { transform: translate(-1px, -1px) rotate(0.5deg); }
-  100% { transform: translate(1px, -1px) rotate(0deg); }
-}
-
-.shake {
-  animation: shake 0.15s cubic-bezier(.36,.07,.19,.97) both;
 }

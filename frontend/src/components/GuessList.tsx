@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { GuessItem } from '../types/game';
-import { Flame, Sparkles, User, Globe, Trophy } from 'lucide-react';
+import { Globe, User, CheckCircle2 } from 'lucide-react';
 
 interface GuessListProps {
   myGuesses: GuessItem[];
@@ -15,48 +15,44 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
 
   const displayList = activeTab === 'all' ? allGuesses : myGuesses;
 
-  // Helper for similarity color & badge
-  const getScoreVisual = (sim: number) => {
+  // Clean, muted color indicators (anti-AI slop)
+  const getScoreStyle = (sim: number) => {
     if (sim >= 100) {
       return {
-        bg: 'from-amber-400 via-yellow-300 to-yellow-500 text-slate-900',
-        bar: 'bg-gradient-to-r from-amber-400 to-yellow-500',
-        text: 'text-amber-300 font-black',
-        icon: '👑',
-        label: '정답!'
+        bar: 'bg-emerald-500',
+        text: 'text-emerald-600 dark:text-emerald-400 font-bold',
+        badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+        label: '정답'
       };
     }
     if (sim >= 70) {
       return {
-        bg: 'from-rose-500 to-orange-500 text-white',
-        bar: 'bg-gradient-to-r from-orange-500 to-rose-500',
-        text: 'text-rose-400 font-bold',
-        icon: '🔥',
-        label: '매우 뜨거움'
+        bar: 'bg-amber-500',
+        text: 'text-amber-600 dark:text-amber-400 font-semibold',
+        badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+        label: '매우 근접'
       };
     }
     if (sim >= 45) {
       return {
-        bg: 'from-amber-500 to-yellow-500 text-slate-900',
-        bar: 'bg-gradient-to-r from-yellow-400 to-amber-500',
-        text: 'text-amber-400 font-semibold',
-        icon: '⚡',
-        label: '따뜻함'
+        bar: 'bg-blue-500',
+        text: 'text-blue-600 dark:text-blue-400',
+        badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        label: '근접'
       };
     }
     return {
-      bg: 'from-sky-500 to-indigo-500 text-white',
-      bar: 'bg-gradient-to-r from-sky-400 to-indigo-500',
-      text: 'text-sky-300',
-      icon: '❄️',
-      label: '차가움'
+      bar: 'bg-zinc-400 dark:bg-zinc-600',
+      text: 'text-zinc-600 dark:text-zinc-400',
+      badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700',
+      label: '멂'
     };
   };
 
+  // Excel Mode Table
   if (theme === 'excel') {
     return (
       <div className="w-full max-w-5xl mx-auto my-2 px-2 select-none overflow-x-auto">
-        {/* Excel Tab Bar */}
         <div className="flex items-center space-x-1 border-b border-gray-300 bg-gray-50 text-xs mb-1 px-1">
           <button
             onClick={() => setActiveTab('all')}
@@ -66,7 +62,7 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                 : 'border-transparent text-gray-500 hover:bg-gray-100'
             }`}
           >
-            모두의 추측 데이터 ({allGuesses.length}건)
+            모두의 추측 ({allGuesses.length}건)
           </button>
           <button
             onClick={() => setActiveTab('mine')}
@@ -76,38 +72,37 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                 : 'border-transparent text-gray-500 hover:bg-gray-100'
             }`}
           >
-            내 작업 목록 ({myGuesses.length}건)
+            내 입력 ({myGuesses.length}건)
           </button>
         </div>
 
-        {/* Excel Grid Table */}
         <table className="w-full border-collapse border border-gray-300 text-xs text-left bg-white font-sans">
           <thead>
             <tr className="bg-gray-100 text-gray-600 font-semibold text-[11px]">
               <th className="border border-gray-300 px-2 py-1 w-12 text-center bg-gray-200">#</th>
-              <th className="border border-gray-300 px-3 py-1 w-16 text-center">A (순번)</th>
-              <th className="border border-gray-300 px-3 py-1 w-32">B (작업자)</th>
-              <th className="border border-gray-300 px-4 py-1">C (입력 단어)</th>
-              <th className="border border-gray-300 px-3 py-1 w-28 text-right">D (유사도 점수)</th>
-              <th className="border border-gray-300 px-3 py-1 w-24 text-center">E (추정 순위)</th>
-              <th className="border border-gray-300 px-3 py-1 w-28 text-center">F (판정)</th>
+              <th className="border border-gray-300 px-3 py-1 w-16 text-center">순번</th>
+              <th className="border border-gray-300 px-3 py-1 w-32">작업자</th>
+              <th className="border border-gray-300 px-4 py-1">입력 단어</th>
+              <th className="border border-gray-300 px-3 py-1 w-28 text-right">유사도 점수</th>
+              <th className="border border-gray-300 px-3 py-1 w-24 text-center">순위</th>
+              <th className="border border-gray-300 px-3 py-1 w-28 text-center">판정</th>
             </tr>
           </thead>
           <tbody>
             {displayList.length === 0 ? (
               <tr>
                 <td colSpan={7} className="border border-gray-300 text-center py-8 text-gray-400">
-                  입력된 데이터가 없습니다. 상단 수식 입력줄에서 단어를 입력하십시오.
+                  데이터가 없습니다. 상단 수식 입력줄에서 단어를 입력하세요.
                 </td>
               </tr>
             ) : (
               displayList.map((item, index) => {
-                const visual = getScoreVisual(item.similarity);
+                const style = getScoreStyle(item.similarity);
                 const isMe = item.nickname === currentNickname;
                 return (
                   <tr
                     key={item.id}
-                    className={`hover:bg-blue-50/50 ${item.isAnswer ? 'bg-amber-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
+                    className={`hover:bg-blue-50/50 ${item.isAnswer ? 'bg-emerald-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
                   >
                     <td className="border border-gray-300 px-2 py-1 text-center bg-gray-100 text-gray-400 font-mono text-[10px]">
                       {index + 1}
@@ -130,8 +125,8 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
                       {item.rank ? `${item.rank}위` : '-'}
                     </td>
                     <td className="border border-gray-300 px-3 py-1 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${item.isAnswer ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
-                        {visual.label}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${item.isAnswer ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'}`}>
+                        {style.label}
                       </span>
                     </td>
                   </tr>
@@ -144,18 +139,18 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
     );
   }
 
-  // Liquid Glass Mode
+  // Clean Light & Dark Minimalist List
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pb-12">
+    <div className="w-full max-w-2xl mx-auto px-4 pb-12">
       {/* Tabs */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="glass-panel p-1 rounded-2xl flex space-x-1">
+      <div className="flex items-center justify-between mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+        <div className="flex space-x-1">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
               activeTab === 'all'
-                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
@@ -163,10 +158,10 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
           </button>
           <button
             onClick={() => setActiveTab('mine')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
               activeTab === 'mine'
-                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             <User className="w-3.5 h-3.5" />
@@ -174,81 +169,74 @@ export const GuessList: React.FC<GuessListProps> = ({ myGuesses, allGuesses, cur
           </button>
         </div>
 
-        <div className="text-xs text-indigo-300/60 font-medium">
-          {displayList.length}개의 시도
-        </div>
+        <span className="text-xs text-zinc-400 font-mono">
+          총 {displayList.length}건
+        </span>
       </div>
 
-      {/* Cards List */}
+      {/* Rows */}
       {displayList.length === 0 ? (
-        <div className="glass-panel rounded-3xl p-12 text-center border border-white/10">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-3 text-2xl">
-            💡
-          </div>
-          <h3 className="text-lg font-bold text-white mb-1">아직 입력된 단어가 없습니다</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            위 입력창에 생각나는 단어(명사, 동사, 부사)를 입력하여 숨겨진 비밀 단어와의 유사도를 확인해보세요!
-          </p>
+        <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-8 text-center text-zinc-500 dark:text-zinc-400 text-xs">
+          아직 입력된 단어가 없습니다. 위 입력창에서 첫 단어를 입력해보세요.
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-1.5">
           {displayList.map((item, index) => {
-            const visual = getScoreVisual(item.similarity);
+            const style = getScoreStyle(item.similarity);
             const isMe = item.nickname === currentNickname;
 
             return (
               <div
                 key={item.id}
-                className={`glass-panel p-3.5 rounded-2xl transition duration-300 hover:scale-[1.01] relative overflow-hidden group border ${
+                className={`relative border rounded-lg p-3 transition-colors ${
                   item.isAnswer
-                    ? 'border-amber-400/80 shadow-lg shadow-amber-500/20 bg-amber-500/10'
-                    : 'border-white/10 hover:border-indigo-400/30'
+                    ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20'
+                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
                 }`}
               >
-                {/* Background similarity progress fill */}
+                {/* Subtle progress indicator bar at the bottom edge */}
                 <div
-                  className={`absolute top-0 bottom-0 left-0 opacity-15 pointer-events-none transition-all duration-700 ${visual.bar}`}
-                  style={{ width: `${Math.min(100, Math.max(5, item.similarity))}%` }}
+                  className={`absolute bottom-0 left-0 h-0.5 rounded-b-lg transition-all ${style.bar}`}
+                  style={{ width: `${Math.min(100, Math.max(4, item.similarity))}%` }}
                 />
 
-                <div className="relative flex items-center justify-between z-10">
-                  {/* Left: Index, Nickname, Word */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="text-xs font-mono text-slate-400 w-6 text-center">
-                      #{index + 1}
+                    <span className="text-xs font-mono text-zinc-400 w-5 text-center">
+                      {index + 1}
                     </span>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-base font-bold text-white tracking-wide">
+                        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                           {item.word}
                         </span>
                         {item.isAnswer && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/40 animate-pulse">
-                            🎉 정답!
+                          <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>정답</span>
                           </span>
                         )}
                         {item.rank && (
-                          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 text-indigo-300 border border-white/10">
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                             {item.rank}위
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
-                        <span className={isMe ? 'text-pink-400 font-semibold' : ''}>
+                      <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center space-x-1.5">
+                        <span className={isMe ? 'font-medium text-zinc-700 dark:text-zinc-300' : ''}>
                           {item.nickname} {isMe && '(나)'}
                         </span>
                         <span>•</span>
-                        <span>{visual.icon} {visual.label}</span>
+                        <span>{style.label}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right: Similarity Score */}
+                  {/* Similarity Percentage */}
                   <div className="text-right">
-                    <div className={`text-xl font-black font-mono tracking-tight ${visual.text}`}>
-                      {item.similarity.toFixed(1)}
-                      <span className="text-xs font-normal ml-0.5">%</span>
-                    </div>
+                    <span className={`text-base font-mono font-bold ${style.text}`}>
+                      {item.similarity.toFixed(1)}%
+                    </span>
                   </div>
                 </div>
               </div>

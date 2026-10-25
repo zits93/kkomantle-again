@@ -1,4 +1,4 @@
-export type ThemeMode = 'liquid-glass' | 'excel';
+export type ThemeMode = 'light' | 'dark' | 'excel';
 
 export interface User {
   id: string;
@@ -14,7 +14,7 @@ export interface GuessItem {
   word: string;
   similarity: number; // 0.0 ~ 100.0
   rank?: number; // 1 ~ 1000
-  pos?: string; // 품사: 명사, 동사, 부사 등
+  pos?: string;
   timestamp: number;
   isSelf: boolean;
   isAnswer?: boolean;
