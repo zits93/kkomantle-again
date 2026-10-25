@@ -87,8 +87,25 @@ class KoreanNormalizer:
                 "message": "단어를 입력해주세요."
             }
 
-        # Filter out standalone consonants/vowels (e.g. ㅁㄴㅇㄹ, ㅋㅋ) or non-Hangul
-        if not re.search(r'[가-힣]', clean):
+        # Accept pure English / foreign alphanumeric inputs (e.g. apple, computer, AI, train)
+        if re.fullmatch(r'[a-zA-Z0-9_\-\.]+', clean):
+            if len(clean) < 2:
+                return {
+                    "isValid": False,
+                    "word": clean,
+                    "originalWord": raw,
+                    "message": "2글자 이상의 단어를 입력해주세요."
+                }
+            self.words_set.add(clean)
+            return {
+                "isValid": True,
+                "word": clean,
+                "originalWord": raw,
+                "notice": None
+            }
+
+        # Filter out standalone consonants/vowels (e.g. ㅁㄴㅇㄹ, ㅋㅋ, ㅎㅎ)
+        if re.fullmatch(r'[ㄱ-ㅎㅏ-ㅣ\s]+', raw):
             return {
                 "isValid": False,
                 "word": clean,
@@ -117,8 +134,8 @@ class KoreanNormalizer:
 
         tokens, score = res[0]
 
-        # Filter out pure symbols / foreign tags
-        if any(t.tag in ('SW', 'NA', 'SL', 'SN') for t in tokens):
+        # Filter out pure symbols / punctuation
+        if any(t.tag in ('SW', 'NA') for t in tokens):
             return {
                 "isValid": False,
                 "word": clean,

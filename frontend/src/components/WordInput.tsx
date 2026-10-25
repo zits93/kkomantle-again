@@ -42,7 +42,7 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
             type="text"
             value={word}
             onChange={e => setWord(e.target.value)}
-            placeholder="추측할 단어를 입력하세요 (명사, 동사, 부사)"
+            placeholder="단어 입력 -> 추측 (엔터)"
             disabled={disabled}
             autoFocus
             className="flex-1 bg-transparent px-4 py-3 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none text-base font-normal"

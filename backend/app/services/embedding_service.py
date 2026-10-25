@@ -9,27 +9,15 @@ class EmbeddingService:
     def __init__(self, words_file: str = settings.WORDS_FILE):
         self.words_file = words_file
         self.vocab: Dict[str, Dict[str, Any]] = {}
-        self.dim = 64
+        self.dim = 384
         self.load_vocab()
 
-        # Cache for real Qwen embeddings
-        self._qwen_cache: Dict[str, np.ndarray] = {}
-        self._qwen_model = None
-        self._qwen_tokenizer = None
-        self._qwen_device = None
-        self._qwen_initialized = False
-
-        # Load global mean vector for debiasing LLM representation degeneration (anisotropy)
-        mean_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "qwen_mean_vector.npy")
-        if os.path.exists(mean_path):
-            try:
-                self._mean_vector = np.load(mean_path)
-                print("✅ Loaded Qwen debiasing mean vector for realistic similarity distribution.")
-            except Exception as e:
-                print(f"Failed to load mean vector: {e}")
-                self._mean_vector = None
-        else:
-            self._mean_vector = None
+        # Cache for real neural embeddings
+        self._cache: Dict[str, np.ndarray] = {}
+        self._model = None
+        self._tokenizer = None
+        self._device = None
+        self._initialized = False
 
     def load_vocab(self):
         if os.path.exists(self.words_file):
@@ -40,48 +28,50 @@ class EmbeddingService:
                 print(f"Failed to load vocab: {e}")
                 self.vocab = {}
 
-    def _init_qwen_model(self):
-        """Lazy load Qwen neural model on first request."""
-        if self._qwen_initialized:
+    def _init_neural_model(self):
+        """Lazy load multilingual cross-lingual embedding model."""
+        if self._initialized:
             return
-        self._qwen_initialized = True
+        self._initialized = True
         try:
             import torch
             from transformers import AutoTokenizer, AutoModel
-            model_id = "Qwen/Qwen2.5-0.5B"
-            self._qwen_tokenizer = AutoTokenizer.from_pretrained(model_id)
-            self._qwen_model = AutoModel.from_pretrained(model_id, torch_dtype=torch.float32)
-            self._qwen_device = "cpu"
-            self._qwen_model = self._qwen_model.to(self._qwen_device)
-            self._qwen_model.eval()
-            print(f"✅ Qwen neural model loaded on {self._qwen_device} (float32)!")
+            model_id = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            self._tokenizer = AutoTokenizer.from_pretrained(model_id)
+            self._model = AutoModel.from_pretrained(model_id)
+            self._device = "cpu"
+            self._model = self._model.to(self._device)
+            self._model.eval()
+            print(f"✅ Multilingual cross-lingual embedding model loaded on {self._device}!")
         except Exception as e:
-            print(f"Direct Qwen loading skipped: {e}")
-            self._qwen_model = None
+            print(f"Direct multilingual model loading failed: {e}")
+            self._model = None
 
-    def _get_direct_qwen_embedding(self, word: str) -> Optional[np.ndarray]:
-        """Compute real neural embedding using local PyTorch Qwen model."""
-        if word in self._qwen_cache:
-            return self._qwen_cache[word]
+    def _get_direct_neural_embedding(self, word: str) -> Optional[np.ndarray]:
+        """Compute semantic embedding with multilingual mean-pooling."""
+        word_key = word.strip().lower()
+        if word_key in self._cache:
+            return self._cache[word_key]
 
-        self._init_qwen_model()
-        if self._qwen_model is None or self._qwen_tokenizer is None:
+        self._init_neural_model()
+        if self._model is None or self._tokenizer is None:
             return None
 
         try:
             import torch
-            inputs = self._qwen_tokenizer(word, return_tensors="pt").to(self._qwen_device)
+            inputs = self._tokenizer(word, return_tensors="pt", padding=True, truncation=True).to(self._device)
             with torch.no_grad():
-                outputs = self._qwen_model(**inputs)
-                emb = outputs.last_hidden_state.mean(dim=1).squeeze().float().cpu().numpy()
-                if self._mean_vector is not None:
-                    emb = emb - self._mean_vector
-                norm = np.linalg.norm(emb)
-                vec = emb / (norm + 1e-9)
-                self._qwen_cache[word] = vec
-                return vec
+                outputs = self._model(**inputs)
+                mask = inputs["attention_mask"].unsqueeze(-1).expand(outputs.last_hidden_state.size()).float()
+                sum_emb = torch.sum(outputs.last_hidden_state * mask, 1)
+                sum_mask = torch.clamp(mask.sum(1), min=1e-9)
+                vec = (sum_emb / sum_mask).squeeze().float().cpu().numpy()
+                norm = np.linalg.norm(vec)
+                norm_vec = vec / (norm + 1e-9)
+                self._cache[word_key] = norm_vec
+                return norm_vec
         except Exception as e:
-            print(f"Qwen embedding error for '{word}': {e}")
+            print(f"Multilingual embedding error for '{word}': {e}")
             return None
 
     def _try_ollama_embedding(self, word: str) -> Optional[np.ndarray]:
@@ -113,12 +103,12 @@ class EmbeddingService:
     def get_vector(self, word: str) -> np.ndarray:
         word = word.strip()
 
-        # 1. Try real local Qwen neural network
-        qwen_vec = self._get_direct_qwen_embedding(word)
-        if qwen_vec is not None:
-            return qwen_vec
+        # 1. Primary: Real multilingual neural embedding
+        vec = self._get_direct_neural_embedding(word)
+        if vec is not None:
+            return vec
 
-        # 2. Try Ollama daemon
+        # 2. Secondary: Ollama daemon
         ollama_vec = self._try_ollama_embedding(word)
         if ollama_vec is not None:
             return ollama_vec
@@ -131,7 +121,7 @@ class EmbeddingService:
         return self._generate_oov_vector(word)
 
     def calculate_similarity(self, word_a: str, word_b: str) -> float:
-        if word_a == word_b:
+        if word_a.strip().lower() == word_b.strip().lower():
             return 100.0
 
         vec_a = self.get_vector(word_a)
@@ -146,9 +136,9 @@ class EmbeddingService:
 
         cosine = float(dot / (norm_a * norm_b))
         if cosine >= 0:
-            score = round(min(99.4, 15.0 + (cosine ** 0.8) * 85.0), 1)
+            score = round(min(99.4, (cosine ** 0.85) * 100.0), 1)
         else:
-            score = round(max(0.0, 15.0 + (cosine / 0.4) * 15.0), 1)
+            score = 0.0
         return score
 
 embedding_service = EmbeddingService()
