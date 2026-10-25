@@ -84,11 +84,13 @@ export const getRankTierInfo = (rank?: number, similarity: number = 0, isAnswer:
 export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNickname, gameStats }) => {
   const { theme } = useTheme();
   const [sortMode, setSortMode] = useState<SortMode>('similarity');
+  const [visibleCount, setVisibleCount] = useState<number>(100);
 
   const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
   const totalWords = gameStats?.totalWords ?? 500000;
 
   const displayList = useSortedGuesses(allGuesses, sortMode);
+  const visibleList = displayList.slice(0, visibleCount);
 
   // Excel Mode Table with Subtle Data Bars
   if (theme === 'excel') {
@@ -244,7 +246,7 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
         </div>
       ) : (
         <div className="space-y-2">
-          {displayList.map((item, index) => {
+          {visibleList.map((item, index) => {
             const tier = getRankTierInfo(item.rank, item.similarity, item.isAnswer);
             const isMe = item.nickname === currentNickname;
 
@@ -321,6 +323,18 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
               </div>
             );
           })}
+
+          {visibleCount < displayList.length && (
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setVisibleCount(c => c + 100)}
+                className="w-full py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 transition shadow-xs"
+              >
+                더 보기 (+{Math.min(100, displayList.length - visibleCount)}건 / 총 {displayList.length}건)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

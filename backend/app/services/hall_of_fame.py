@@ -24,6 +24,8 @@ class HallOfFameManager:
     def _init_db(self):
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("PRAGMA journal_mode = WAL;")
+            cursor.execute("PRAGMA synchronous = NORMAL;")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS winners (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

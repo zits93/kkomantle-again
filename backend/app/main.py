@@ -1,5 +1,6 @@
 import json
 import uuid
+import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
@@ -9,6 +10,7 @@ from app.services.hall_of_fame import hall_of_fame_service
 from app.services.chat_manager import chat_service
 from app.services.word_service import word_service
 from app.services.user_service import user_service
+from app.services.embedding_service import embedding_service
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -23,6 +25,9 @@ app.add_middleware(
 # Startup: initialize first secret target word or restore active round
 @app.on_event("startup")
 def startup_event():
+    # Warmup neural embedding engine proactive to eliminate initial latency
+    embedding_service.warmup()
+
     if not game_state.has_active_round():
         recent_used = game_state.get_recent_target_words(100)
         initial_word = word_service.get_random_word(exclude=recent_used)
@@ -173,8 +178,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not raw_word:
                     continue
 
-                # 1. Morphological normalization & typo auto-correction
-                norm_res = word_service.normalize_and_validate(raw_word)
+                # 1. Non-blocking parallel morphological normalization
+                norm_res = await asyncio.to_thread(word_service.normalize_and_validate, raw_word)
                 if not norm_res["isValid"]:
                     await connection_manager.send_personal(conn_id, {
                         "type": "guess_error",
@@ -186,7 +191,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 clean_word = norm_res["word"]
                 notice = norm_res.get("notice")
 
-                eval_result = word_service.evaluate_guess(clean_word, game_state.target_word, notice=notice)
+                # 2. Non-blocking parallel vector evaluation with precomputed target vector
+                eval_result = await asyncio.to_thread(
+                    word_service.evaluate_guess_fast,
+                    clean_word,
+                    game_state.target_word,
+                    game_state.target_vector,
+                    notice
+                )
                 guess_item = game_state.record_guess(
                     user_id=conn_id,
                     nickname=nickname,
@@ -283,4 +295,7 @@ async def websocket_endpoint(websocket: WebSocket):
             "users": connection_manager.get_user_list()
         })
     except Exception as e:
+        print(f"WS error for {conn_id}: {e}")
+        import traceback
+        traceback.print_exc()
         connection_manager.disconnect(conn_id)

@@ -35,6 +35,7 @@ class KoreanNormalizer:
 
         # Build candidate pool for typo correction: target words + common short words
         self.typo_pool = list(set(self.target_words + [w for w in self.words_list[:12000] if len(w) <= 6]))
+        self._norm_cache: Dict[str, Dict[str, Any]] = {}
 
     def find_typo_correction(self, word: str, threshold: float = 0.85) -> Optional[str]:
         """
@@ -64,20 +65,17 @@ class KoreanNormalizer:
         return None
 
     def normalize_and_validate(self, raw_input: str) -> Dict[str, Any]:
-        """
-        Disciplined normalization pipeline:
-        1. Clean special characters & check non-Hangul
-        2. Exact dictionary check
-        3. Kiwi morphological analysis:
-           - If NO OOV morphemes:
-             * Verb/Adjective conjugate: restore citation base form (~다)
-             * Noun with particles: strip particles
-             * Standard nouns/adverbs (선물, 책상, 불고기, 콜라 등): ACCEPT AS-IS! (NEVER typo correct valid words)
-           - If CONTAINS OOV morphemes (actual typo):
-             * Attempt close typo correction against target words
-             * Otherwise reject as invalid: "사전에 없는 단어입니다."
-        """
         raw = raw_input.strip()
+        if raw in self._norm_cache:
+            return dict(self._norm_cache[raw])
+
+        res = self._do_normalize_and_validate(raw)
+        if len(self._norm_cache) >= 50000:
+            self._norm_cache.clear()
+        self._norm_cache[raw] = res
+        return res
+
+    def _do_normalize_and_validate(self, raw: str) -> Dict[str, Any]:
         clean = re.sub(r'[^가-힣a-zA-Z0-9]', '', raw)
         if not clean:
             return {

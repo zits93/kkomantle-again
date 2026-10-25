@@ -2,10 +2,12 @@ import time
 import uuid
 import sqlite3
 import os
+import numpy as np
 from typing import Set, Dict, Any, List, Optional
 from app.config import settings
 from app.services.hall_of_fame import hall_of_fame_service
 from app.services.user_service import user_service
+from app.services.embedding_service import embedding_service
 
 class GameState:
     def __init__(self, db_path: str = settings.DB_PATH):
@@ -15,6 +17,7 @@ class GameState:
 
         self.round_id: str = f"round_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
         self.target_word: str = "인공지능"
+        self.target_vector: Optional[np.ndarray] = None
         self.round_start_time: float = time.time()
         self.solved_by: Optional[str] = None
         self.once_more_voters: Set[str] = set()
@@ -23,6 +26,7 @@ class GameState:
 
         # Restore latest active round from database if available
         self._load_active_round()
+        self._sync_target_vector()
 
     def has_active_round(self) -> bool:
         return self._is_restored and bool(self.target_word)
@@ -46,6 +50,9 @@ class GameState:
     def _init_db(self):
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("PRAGMA journal_mode = WAL;")
+            cursor.execute("PRAGMA synchronous = NORMAL;")
+            cursor.execute("PRAGMA temp_store = MEMORY;")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS game_rounds (
                     round_id TEXT PRIMARY KEY,
@@ -68,6 +75,15 @@ class GameState:
                 )
             """)
             conn.commit()
+
+    def _sync_target_vector(self):
+        """Precompute and cache target vector for ultra-fast O(1) similarity evaluation."""
+        if self.target_word:
+            try:
+                self.target_vector = embedding_service.get_vector(self.target_word)
+            except Exception as e:
+                print(f"Failed to sync target vector: {e}")
+                self.target_vector = None
 
     def _load_active_round(self):
         with self._get_connection() as conn:
@@ -131,6 +147,7 @@ class GameState:
                 VALUES (?, ?, 1)
             """, (self.round_id, self.target_word))
             conn.commit()
+        self._sync_target_vector()
 
     def vote_once_more(self, conn_id: str, total_active_users: int) -> Dict[str, Any]:
         self.once_more_voters.add(conn_id)

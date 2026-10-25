@@ -69,32 +69,47 @@ class WordService:
         candidates = [w for w in self.curated_target_words if w not in exclude_set]
         return random.choice(candidates if candidates else self.curated_target_words)
 
-    def evaluate_guess(self, guess: str, target: str, notice: Optional[str] = None) -> Dict[str, Any]:
+    def evaluate_guess_fast(
+        self,
+        guess: str,
+        target: str,
+        target_vector: Optional[Any] = None,
+        notice: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Parallel, vector-accelerated guess evaluation."""
         guess = guess.strip()
-        similarity = embedding_service.calculate_similarity(guess, target)
-        is_answer = (guess == target)
-
-        rank: Optional[int] = None
+        is_answer = (guess.lower() == target.lower())
+        
         if is_answer:
+            similarity = 100.0
             rank = 1
-        elif similarity >= 58.0:
-            rank = max(2, min(10, int((100.0 - similarity) / 4.2 * 8) + 2))
-        elif similarity >= 45.0:
-            rank = 11 + int(((58.0 - similarity) / 13.0) * 89)
-        elif similarity >= 35.0:
-            rank = 101 + int(((45.0 - similarity) / 10.0) * 199)
-        elif similarity >= 24.0:
-            rank = 301 + int(((35.0 - similarity) / 11.0) * 699)
         else:
-            rank = None
+            if target_vector is not None:
+                similarity = embedding_service.calculate_similarity_to_target_vector(guess, target_vector, target)
+            else:
+                similarity = embedding_service.calculate_similarity(guess, target)
+
+            if similarity >= 58.0:
+                rank = max(2, min(10, int((100.0 - similarity) / 4.2 * 8) + 2))
+            elif similarity >= 45.0:
+                rank = 11 + int(((58.0 - similarity) / 13.0) * 89)
+            elif similarity >= 35.0:
+                rank = 101 + int(((45.0 - similarity) / 10.0) * 199)
+            elif similarity >= 24.0:
+                rank = 301 + int(((35.0 - similarity) / 11.0) * 699)
+            else:
+                rank = None
 
         return {
             "word": guess,
-            "similarity": 100.0 if is_answer else similarity,
-            "rank": 1 if is_answer else rank,
+            "similarity": similarity,
+            "rank": rank,
             "isAnswer": is_answer,
             "inDictionary": True,
             "notice": notice
         }
+
+    def evaluate_guess(self, guess: str, target: str, notice: Optional[str] = None) -> Dict[str, Any]:
+        return self.evaluate_guess_fast(guess, target, None, notice)
 
 word_service = WordService()

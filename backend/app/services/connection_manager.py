@@ -1,6 +1,7 @@
 from fastapi import WebSocket
 from typing import Dict, Any, List
 import json
+import asyncio
 
 class ConnectionManager:
     def __init__(self):
@@ -49,14 +50,22 @@ class ConnectionManager:
             await ws.send_text(json.dumps(message, ensure_ascii=False))
 
     async def broadcast(self, message: dict):
+        if not self.active_connections:
+            return
         text = json.dumps(message, ensure_ascii=False)
-        disconnected = []
-        for cid, data in self.active_connections.items():
+
+        async def _safe_send(cid: str, ws: WebSocket):
             try:
-                await data["ws"].send_text(text)
+                await ws.send_text(text)
+                return None
             except Exception:
-                disconnected.append(cid)
-        for cid in disconnected:
-            self.disconnect(cid)
+                return cid
+
+        # Concurrent parallel broadcast to all active clients
+        tasks = [_safe_send(cid, data["ws"]) for cid, data in list(self.active_connections.items())]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for res in results:
+            if isinstance(res, str):
+                self.disconnect(res)
 
 connection_manager = ConnectionManager()
