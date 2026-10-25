@@ -2,11 +2,14 @@ from fastapi import WebSocket
 from typing import Dict, Any, List
 import json
 import asyncio
+import time
 
 class ConnectionManager:
     def __init__(self):
         # connection_id -> (WebSocket, nickname, client_ip, masked_ip)
         self.active_connections: Dict[str, Dict[str, Any]] = {}
+        # HTTP polling fallback active users: key -> { id, nickname, ipMasked, last_seen }
+        self.http_active_users: Dict[str, Dict[str, Any]] = {}
 
     def mask_ip(self, ip: str) -> str:
         if not ip or ip in ("127.0.0.1", "localhost", "::1", "testclient"):
@@ -34,8 +37,26 @@ class ConnectionManager:
         if conn_id in self.active_connections:
             del self.active_connections[conn_id]
 
+    def touch_http_user(self, nickname: str, client_ip: str):
+        """Keep track of active users polling via HTTP fallback (e.g. corporate intranet)."""
+        masked = self.mask_ip(client_ip)
+        key = f"{nickname}_{masked}"
+        self.http_active_users[key] = {
+            "id": f"http_{key}",
+            "nickname": nickname,
+            "ipMasked": masked,
+            "last_seen": time.time()
+        }
+
+    def _cleanup_http_users(self):
+        now = time.time()
+        expired = [k for k, v in self.http_active_users.items() if now - v["last_seen"] > 15.0]
+        for k in expired:
+            del self.http_active_users[k]
+
     def get_user_list(self) -> List[Dict[str, Any]]:
-        return [
+        self._cleanup_http_users()
+        users = [
             {
                 "id": cid,
                 "nickname": data["nickname"],
@@ -43,6 +64,19 @@ class ConnectionManager:
             }
             for cid, data in self.active_connections.items()
         ]
+        # Include HTTP fallback users who aren't already connected via WebSocket
+        ws_nicks = {u["nickname"] for u in users}
+        for u in self.http_active_users.values():
+            if u["nickname"] not in ws_nicks:
+                users.append({
+                    "id": u["id"],
+                    "nickname": u["nickname"],
+                    "ipMasked": u["ipMasked"]
+                })
+        return users
+
+    def get_total_users_count(self) -> int:
+        return len(self.get_user_list())
 
     async def send_personal(self, conn_id: str, message: dict):
         if conn_id in self.active_connections:

@@ -250,7 +250,7 @@ export const useGameSocket = (backendUrl?: string) => {
       }
 
       // 2. Fetch Active Game State & All Guesses for current round
-      const stateRes = await fetch(`${baseHttp}/api/game-state`, { headers });
+      const stateRes = await fetch(`${baseHttp}/api/game-state?nickname=${encodeURIComponent(nickname)}`, { headers });
       if (stateRes.ok) {
         const gameState = await stateRes.json();
         if (gameState.roundId) {
@@ -267,6 +267,14 @@ export const useGameSocket = (backendUrl?: string) => {
         }
         if (Array.isArray(gameState.allGuesses)) {
           saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
+        }
+        if (Array.isArray(gameState.activeUsers)) {
+          setActiveUsers(gameState.activeUsers);
+          setVoteState(prev => ({
+            ...prev,
+            activeUsers: gameState.activeUsers.length,
+            requiredVotes: gameState.activeUsers.length <= 1 ? 1 : 2,
+          }));
         }
       }
 

@@ -92,17 +92,31 @@ async def confirm_user_nickname(payload: dict, request: Request):
     return user_service.confirm_user(nickname, client_ip)
 
 @app.get("/api/game-state")
-def get_current_game_state():
+def get_current_game_state(request: Request, nickname: Optional[str] = None):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    if nickname:
+        connection_manager.touch_http_user(nickname, client_ip)
+
+    users = connection_manager.get_user_list()
+    top_dots = game_state.round_top_dots
+    top10_c = round(embedding_service._scale_similarity(float(top_dots[9])), 1) if len(top_dots) >= 10 else 58.0
+    top100_c = round(embedding_service._scale_similarity(float(top_dots[99])), 1) if len(top_dots) >= 100 else 45.0
+    top1000_c = round(embedding_service._scale_similarity(float(top_dots[-1])), 1) if len(top_dots) >= 1000 else 24.0
+
     return {
         "roundId": game_state.round_id,
         "totalWords": len(word_service.words_pool),
         "rankCutoffs": {
-            "top10": 58.0,
-            "top100": 45.0,
-            "top1000": 24.0
+            "top10": top10_c,
+            "top100": top100_c,
+            "top1000": top1000_c
         },
         "allGuesses": game_state.get_guesses_for_round(),
-        "activeUsers": len(connection_manager.active_connections),
+        "activeUsers": users,
+        "activeUserCount": len(users),
         "solvedBy": game_state.solved_by
     }
 
@@ -198,16 +212,20 @@ async def api_submit_guess(payload: dict, request: Request):
     if forwarded:
         client_ip = forwarded.split(",")[0].strip()
 
+    connection_manager.touch_http_user(nickname, client_ip)
     return await handle_guess_submission(raw_word, nickname, client_ip)
 
 @app.post("/api/vote")
 async def api_vote_once_more(payload: dict, request: Request):
+    nickname = payload.get("nickname", "익명").strip() or "익명"
     client_ip = request.client.host if request.client else "127.0.0.1"
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         client_ip = forwarded.split(",")[0].strip()
-    pseudo_id = f"http_{client_ip}"
-    total_users = max(1, len(connection_manager.active_connections))
+
+    connection_manager.touch_http_user(nickname, client_ip)
+    pseudo_id = f"http_{nickname}_{connection_manager.mask_ip(client_ip)}"
+    total_users = max(1, connection_manager.get_total_users_count())
     vote_result = game_state.vote_once_more(pseudo_id, total_users)
 
     if vote_result["should_reset"]:
