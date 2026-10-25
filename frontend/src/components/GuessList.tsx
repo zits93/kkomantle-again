@@ -328,7 +328,7 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
               <button
                 type="button"
                 onClick={() => setVisibleCount(c => c + 100)}
-                className="w-full py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 transition shadow-xs"
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 transition shadow-xs flex items-center justify-center cursor-pointer"
               >
                 더 보기 (+{Math.min(100, displayList.length - visibleCount)}건 / 총 {displayList.length}건)
               </button>

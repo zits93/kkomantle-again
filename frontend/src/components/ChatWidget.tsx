@@ -192,7 +192,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 placeholder="메시지 입력..."
-                className={`flex-1 rounded-md px-2.5 py-1 text-xs outline-none ${
+                className={`flex-1 rounded-md px-2.5 h-9 text-xs outline-none ${
                   theme === 'excel'
                     ? 'bg-white border border-gray-300 text-black'
                     : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-zinc-400'
@@ -202,7 +202,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 type="submit"
                 disabled={!inputText.trim()}
                 aria-label="메시지 전송"
-                className={`p-1.5 rounded-md transition disabled:opacity-40 cursor-pointer ${
+                className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-md transition disabled:opacity-40 cursor-pointer ${
                   theme === 'excel'
                     ? 'bg-excel-header text-white hover:bg-emerald-800'
                     : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800'

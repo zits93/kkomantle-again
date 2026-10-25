@@ -7,6 +7,8 @@
   /* Perceptual Neutral Scale (oklch) - Light */
   --canvas-bg: oklch(98.5% 0.002 260);      /* #fafafa zinc-50 clean canvas */
   --canvas-text: oklch(21% 0.006 260);     /* #18181b zinc-900 */
+  --scrollbar-thumb: rgba(148, 163, 184, 0.4);
+  --scrollbar-track: transparent;
 }
 
 .dark {
@@ -14,6 +16,7 @@
   /* Perceptual Neutral Scale (oklch) - Dark */
   --canvas-bg: oklch(14.5% 0.005 260);     /* #09090b zinc-950 deep canvas */
   --canvas-text: oklch(96.5% 0.002 260);   /* #f4f4f5 zinc-100 */
+  --scrollbar-thumb: rgba(113, 113, 122, 0.4);
 }
 
 body {
@@ -21,11 +24,24 @@ body {
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   letter-spacing: -0.015em;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--canvas-bg);
   color: var(--canvas-text);
   transition: background-color 0.2s ease, color 0.2s ease;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+/* Modern Typography Guidelines: Balanced Headings & Anti-Orphan Text */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p, .prose, .break-keep {
+  text-wrap: pretty;
+  word-break: keep-all;
 }
 
 /* Excel Theme Styles */
@@ -34,6 +50,7 @@ body {
   color-scheme: light;
   background-color: #ffffff;
   color: #000000;
+  --scrollbar-thumb: #c8c6c4;
 }
 
 .excel-cell-border {
@@ -41,25 +58,25 @@ body {
   border-bottom: 1px solid #e1dfdd;
 }
 
-/* Minimalist Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Modern Scrollbar Standards */
+* {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Fallback for WebKit browsers that do not support scrollbar-color */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
-  border-radius: 3px;
-}
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(113, 113, 122, 0.4);
-}
-
-.excel-mode ::-webkit-scrollbar-thumb {
-  background: #c8c6c4;
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+  }
 }
