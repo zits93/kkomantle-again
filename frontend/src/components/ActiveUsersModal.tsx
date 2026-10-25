@@ -21,16 +21,16 @@ export const ActiveUsersModal: React.FC<ActiveUsersModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md select-none">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="active-users-title"
-        className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
+        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.3)] border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
       >
         {/* Header */}
-        <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
+        <div className="px-4 py-3.5 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-zinc-500" />
             <h2 id="active-users-title" className="font-bold text-xs tracking-tight">실시간 접속자 ({users.length}명)</h2>
@@ -38,7 +38,7 @@ export const ActiveUsersModal: React.FC<ActiveUsersModalProps> = ({
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition text-zinc-400"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all active:scale-95 text-zinc-400 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

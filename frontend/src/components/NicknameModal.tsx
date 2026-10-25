@@ -100,19 +100,19 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md select-none">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="nickname-modal-title"
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl relative"
+        className="bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-2xl max-w-sm w-full p-5 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.3)] relative"
       >
         {canDismiss && (
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="absolute top-4 right-4 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            className="absolute top-4 right-4 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

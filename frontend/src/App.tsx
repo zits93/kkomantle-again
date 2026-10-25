@@ -113,16 +113,16 @@ export const AppContent: React.FC = () => {
       {/* Winner Notification Banner */}
       {lastWinAlert && (
         <div className="w-full max-w-2xl mx-auto my-3 px-4">
-          <div className={`p-3 sm:p-4 rounded-xl border flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-xs ${
+          <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-[0_8px_24px_-6px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all ${
             lastWinAlert.isSelf
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-              : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
+              ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-[0_8px_24px_-4px_rgba(16,185,129,0.18)]'
+              : 'bg-zinc-100/90 dark:bg-zinc-900/90 border-zinc-300/80 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
           }`}>
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
+            <div className="flex items-center space-x-2.5 min-w-0 flex-1">
               {lastWinAlert.isSelf ? (
                 <>
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="leading-snug break-keep">축하합니다! 정답을 맞추셨습니다!</span>
+                  <span className="leading-snug break-keep font-semibold">축하합니다! 정답을 맞추셨습니다!</span>
                 </>
               ) : (
                 <>
@@ -133,7 +133,7 @@ export const AppContent: React.FC = () => {
             </div>
             <button
               onClick={() => setLastWinAlert(null)}
-              className="shrink-0 min-w-[56px] h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border border-current opacity-80 hover:opacity-100 transition flex items-center justify-center cursor-pointer shadow-xs"
+              className="shrink-0 min-w-[56px] h-8 px-3 rounded-xl text-xs font-semibold whitespace-nowrap border border-current opacity-85 hover:opacity-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-xs motion-reduce:transform-none"
             >
               닫기
             </button>
@@ -144,8 +144,8 @@ export const AppContent: React.FC = () => {
       {/* Previous Round Answer Banner on Round Reset */}
       {previousRoundAnswer && (
         <div className="w-full max-w-2xl mx-auto my-2 px-4">
-          <div className="p-3 sm:p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-xs">
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/70 backdrop-blur-md text-zinc-800 dark:text-zinc-200 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06)] transition-all">
+            <div className="flex items-center space-x-2.5 min-w-0 flex-1">
               <Target className="w-4 h-4 text-zinc-500 shrink-0" />
               <div className="leading-snug break-keep text-xs sm:text-sm">
                 <span>이전 라운드 정답: </span>
@@ -155,7 +155,7 @@ export const AppContent: React.FC = () => {
             </div>
             <button
               onClick={() => setPreviousRoundAnswer(null)}
-              className="shrink-0 min-w-[56px] h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center justify-center shadow-xs cursor-pointer"
+              className="shrink-0 min-w-[56px] h-8 px-3 rounded-xl text-xs font-semibold whitespace-nowrap bg-white dark:bg-zinc-800 border border-zinc-300/80 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center shadow-xs cursor-pointer motion-reduce:transform-none"
             >
               확인
             </button>

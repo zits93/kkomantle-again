@@ -22,16 +22,16 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="hall-of-fame-title"
-        className={`w-full max-w-md rounded-xl overflow-hidden shadow-2xl border transition-all ${
+        className={`w-full max-w-md rounded-2xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.3)] border transition-all ${
           theme === 'excel'
             ? 'bg-white border-gray-400 text-gray-800 font-sans'
-            : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
+            : 'bg-white dark:bg-zinc-900 border-zinc-200/90 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
         }`}
       >
         {/* Header */}
@@ -49,7 +49,7 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition text-zinc-400"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all active:scale-95 text-zinc-400 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
