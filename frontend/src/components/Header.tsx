@@ -132,13 +132,10 @@ export const Header: React.FC<HeaderProps> = ({
             </h1>
             <button
               onClick={onOpenServerSettings}
-              className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer text-[10px]"
-              title={isConnected ? '실시간 서버 연결됨 (클릭하여 설정)' : '오프라인 모드 (클릭하여 서버 연결)'}
+              className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title={isConnected ? '서버 연결됨 (클릭하여 설정)' : '오프라인 모드 (클릭하여 설정)'}
             >
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-zinc-500 dark:text-zinc-400 font-medium hidden sm:inline">
-                {isConnected ? '온라인' : '오프라인'}
-              </span>
+              <span className={`block w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
             </button>
           </div>
 

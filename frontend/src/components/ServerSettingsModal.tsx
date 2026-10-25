@@ -86,7 +86,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
             }`}
           >
             <div className="flex items-center space-x-2.5">
-              <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
               <div>
                 <div className="font-semibold text-xs">
                   {isConnected ? '실시간 서버 연결됨 (단어 공유 중)' : '로컬 오프라인 모드'}
