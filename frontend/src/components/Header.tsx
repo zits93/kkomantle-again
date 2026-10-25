@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <button className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-medium flex items-center space-x-1.5 transition">
               <Users className="w-3.5 h-3.5 text-zinc-400" />
-              <span>{activeUsers.length}명 접속</span>
+              <span>접속자 {activeUsers.length}명</span>
             </button>
 
             {/* Hover Popover */}
@@ -191,13 +191,13 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Hall of Fame Trigger */}
+          {/* Hall of Fame / Ranking Trigger */}
           <button
             onClick={onOpenHallOfFame}
             className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-medium flex items-center space-x-1.5 transition"
           >
             <Trophy className="w-3.5 h-3.5 text-amber-500" />
-            <span>명예의 전당</span>
+            <span>랭킹</span>
             {topWinners.length > 0 && (
               <span className="text-[11px] text-zinc-400 ml-0.5">
                 {topWinners.map((w, idx) => `${medals[idx]}${w.nickname.slice(0,2)}`).join(' ')}

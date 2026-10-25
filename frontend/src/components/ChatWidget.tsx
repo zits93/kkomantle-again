@@ -83,7 +83,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 ? 'px-3 py-1.5 rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 text-xs font-sans space-x-1.5'
                 : 'p-3 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
             }`}
-            title="채팅 및 공지"
+            title="채팅"
           >
             <MessageSquare className="w-4 h-4" />
             {theme === 'excel' && <span className="font-medium">공동 메모</span>}
@@ -123,7 +123,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               }`}
             >
               <div className="flex items-center space-x-2">
-                <span className="font-semibold text-xs">채팅 및 공지</span>
+                <span className="font-semibold text-xs">채팅</span>
                 <span className="text-[10px] text-zinc-400 font-mono">({messages.length}/300)</span>
               </div>
 

@@ -40,7 +40,7 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
         >
           <div className="flex items-center space-x-2">
             <Trophy className="w-4 h-4 text-amber-500" />
-            <h2 className="font-bold text-sm tracking-tight">명예의 전당</h2>
+            <h2 className="font-bold text-sm tracking-tight">랭킹</h2>
           </div>
           <button
             onClick={onClose}
@@ -62,7 +62,7 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
             <div className="text-center py-10 px-4 text-xs text-zinc-400">
               <div className="text-2xl mb-2">🏆</div>
               <p className="font-medium text-zinc-700 dark:text-zinc-300">아직 등록된 정답자가 없습니다.</p>
-              <p className="text-[11px] text-zinc-400 mt-1">단어를 맞추고 명예의 전당 첫 번째 1위가 되어보세요!</p>
+              <p className="text-[11px] text-zinc-400 mt-1">단어를 맞추고 랭킹 1위가 되어보세요!</p>
             </div>
           ) : (
             entries.map((entry) => {
