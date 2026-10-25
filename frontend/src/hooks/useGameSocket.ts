@@ -19,9 +19,6 @@ const FALLBACK_SECRET_WORDS = [
   '와인', '호랑이', '사자', '코끼리', '기린', '토끼', '다람쥐', '돌고래', '펭귄', '독수리'
 ];
 
-export const CLOUDFLARE_TUNNEL_HOST = 'mirrors-tumor-luis-feature.trycloudflare.com';
-export const NGROK_TUNNEL_HOST = '7b27-211-177-123-232.ngrok-free.app';
-
 export const resolveServerHost = (): string => {
   if (typeof window === 'undefined') return '';
   const params = new URLSearchParams(window.location.search);
@@ -32,10 +29,7 @@ export const resolveServerHost = (): string => {
     return clean;
   }
   const saved = localStorage.getItem('kkomantle_backend_server');
-  // If previously saved host was old ngrok domain which might be blocked by corporate firewalls, prefer Cloudflare
-  if (saved && !saved.includes('ngrok-free.app')) {
-    return saved;
-  }
+  if (saved) return saved;
 
   const envWsUrl = (import.meta as any).env?.VITE_WS_URL;
   if (envWsUrl) {
@@ -43,7 +37,7 @@ export const resolveServerHost = (): string => {
   }
 
   if (window.location.hostname.includes('github.io')) {
-    return CLOUDFLARE_TUNNEL_HOST;
+    return '7b27-211-177-123-232.ngrok-free.app';
   }
 
   return `${window.location.hostname}:8000`;
@@ -119,7 +113,6 @@ export const useGameSocket = (backendUrl?: string) => {
   });
 
   const [isConnected, setIsConnected] = useState(false);
-  const [isHttpFallback, setIsHttpFallback] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [revealedWord, setRevealedWord] = useState<string>('');
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
@@ -234,97 +227,52 @@ export const useGameSocket = (backendUrl?: string) => {
     }
   }, [nickname, saveAllGuesses, saveMyGuesses]);
 
-  const getBaseHttpUrl = useCallback(() => {
-    const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
-    return `${isSecure ? 'https://' : 'http://'}${serverHost}`;
-  }, [serverHost]);
-
-  // Initial & periodic REST fetch for real server state (game-state, chat & hall-of-fame)
-  const fetchServerState = useCallback(async () => {
-    try {
-      const baseHttp = getBaseHttpUrl();
-
-      // 1. Fetch Hall of Fame (Clean CORS Simple Request - no preflight)
-      const hofRes = await fetch(`${baseHttp}/api/hall-of-fame?ngrok-skip-browser-warning=true`);
-      if (hofRes.ok) {
-        const data = await hofRes.json();
-        if (Array.isArray(data)) {
-          setHallOfFame(data);
-          localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
-        }
-      }
-
-      // 2. Fetch Active Game State & All Guesses for current round
-      const stateRes = await fetch(`${baseHttp}/api/game-state?nickname=${encodeURIComponent(nickname)}&ngrok-skip-browser-warning=true`);
-      if (stateRes.ok) {
-        const gameState = await stateRes.json();
-        if (gameState.roundId) {
-          setRoundId(gameState.roundId);
-          localStorage.setItem('kkomantle_round_id', gameState.roundId);
-        }
-        if (gameState.totalWords) {
-          setGameStats({
-            totalWords: gameState.totalWords,
-            top1000Cutoff: gameState.rankCutoffs?.top1000 ?? 24.0,
-            top100Cutoff: gameState.rankCutoffs?.top100 ?? 45.0,
-            top10Cutoff: gameState.rankCutoffs?.top10 ?? 58.0,
-          });
-        }
-        if (Array.isArray(gameState.allGuesses)) {
-          saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
-        }
-        if (Array.isArray(gameState.activeUsers)) {
-          setActiveUsers(gameState.activeUsers);
-          setVoteState(prev => ({
-            ...prev,
-            activeUsers: gameState.activeUsers.length,
-            requiredVotes: gameState.activeUsers.length <= 1 ? 1 : 2,
-          }));
-        }
-      }
-
-      // 3. Fetch Recent Chat
-      const chatRes = await fetch(`${baseHttp}/api/chat?ngrok-skip-browser-warning=true`);
-      if (chatRes.ok) {
-        const chatData = await chatRes.json();
-        if (Array.isArray(chatData)) {
-          setChatMessages(chatData);
-          try { localStorage.setItem('kkomantle_chat_messages', JSON.stringify(chatData)); } catch {}
-        }
-      }
-    } catch {
-      // Fallback to local storage (already loaded in useState initializers)
-    }
-  }, [getBaseHttpUrl, saveAllGuesses, nickname]);
-
+  // Initial REST fetch for real server state (game-state & hall-of-fame)
   useEffect(() => {
+    const fetchServerState = async () => {
+      try {
+        const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok');
+        const baseHttp = `${isSecure ? 'https://' : 'http://'}${serverHost}`;
+        const headers = { 'ngrok-skip-browser-warning': '1' };
+
+        // 1. Fetch Hall of Fame
+        const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`, { headers });
+        if (hofRes.ok) {
+          const data = await hofRes.json();
+          if (Array.isArray(data)) {
+            setHallOfFame(data);
+            localStorage.setItem('kkomantle_real_hall_of_fame', JSON.stringify(data));
+          }
+        }
+
+        // 2. Fetch Active Game State & All Guesses for current round
+        const stateRes = await fetch(`${baseHttp}/api/game-state`, { headers });
+        if (stateRes.ok) {
+          const gameState = await stateRes.json();
+          if (gameState.roundId) {
+            setRoundId(gameState.roundId);
+            localStorage.setItem('kkomantle_round_id', gameState.roundId);
+          }
+          if (Array.isArray(gameState.allGuesses)) {
+            saveAllGuesses(() => gameState.allGuesses, gameState.roundId);
+          }
+        }
+      } catch {
+        // Fallback to local storage (already loaded in useState initializers)
+      }
+    };
+
     fetchServerState();
-  }, [fetchServerState]);
+  }, [serverHost, saveAllGuesses]);
 
-  // WebSocket connection management with automatic HTTP REST fallback for corporate networks
+  // WebSocket connection management
   useEffect(() => {
-    const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok') || serverHost.includes('trycloudflare');
+    const isSecure = window.location.protocol === 'https:' || serverHost.includes('ngrok');
     const wsUrl = `${isSecure ? 'wss://' : 'ws://'}${serverHost}/ws`;
 
     let ws: WebSocket;
     let retryTimer: NodeJS.Timeout;
     let isCleanedUp = false;
-
-    const testHttpFallback = async () => {
-      try {
-        const baseHttp = getBaseHttpUrl();
-        const res = await fetch(`${baseHttp}/api/health?ngrok-skip-browser-warning=true`);
-        if (res.ok && !isCleanedUp) {
-          setIsConnected(true);
-          setIsHttpFallback(true);
-          return;
-        }
-      } catch {}
-      if (!isCleanedUp) {
-        setIsConnected(false);
-        setIsHttpFallback(false);
-      }
-    };
 
     const connect = () => {
       if (isCleanedUp) return;
@@ -335,7 +283,6 @@ export const useGameSocket = (backendUrl?: string) => {
         ws.onopen = () => {
           if (isCleanedUp) return;
           setIsConnected(true);
-          setIsHttpFallback(false);
           ws.send(JSON.stringify({ type: 'join', nickname }));
         };
 
@@ -350,17 +297,17 @@ export const useGameSocket = (backendUrl?: string) => {
 
         ws.onclose = () => {
           if (isCleanedUp) return;
-          testHttpFallback();
+          setIsConnected(false);
           retryTimer = setTimeout(connect, 5000);
         };
 
         ws.onerror = () => {
           if (isCleanedUp) return;
-          testHttpFallback();
+          setIsConnected(false);
           ws.close();
         };
       } catch {
-        testHttpFallback();
+        setIsConnected(false);
       }
     };
 
@@ -371,18 +318,7 @@ export const useGameSocket = (backendUrl?: string) => {
       clearTimeout(retryTimer);
       if (socketRef.current) socketRef.current.close();
     };
-  }, [serverHost, nickname, getBaseHttpUrl]);
-
-  // HTTP Polling fallback timer (syncs every 3s if corporate network blocks WebSocket)
-  useEffect(() => {
-    if (!isHttpFallback) return;
-
-    const pollTimer = setInterval(() => {
-      fetchServerState();
-    }, 3000);
-
-    return () => clearInterval(pollTimer);
-  }, [isHttpFallback, fetchServerState]);
+  }, [serverHost, nickname]);
 
   // Process incoming WS data
   const handleIncomingMessage = (data: any) => {
@@ -534,52 +470,6 @@ export const useGameSocket = (backendUrl?: string) => {
       return null;
     }
 
-    if (isHttpFallback) {
-      (async () => {
-        try {
-          const baseHttp = getBaseHttpUrl();
-          const res = await fetch(`${baseHttp}/api/guess?ngrok-skip-browser-warning=true`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'text/plain'
-            },
-            body: JSON.stringify({ word: trimmed, nickname })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.guess) {
-              const guessItem: GuessItem = { ...data.guess, isSelf: true };
-              saveMyGuesses(prev => [guessItem, ...prev.filter(g => g.word !== trimmed)].sort((a,b) => b.similarity - a.similarity));
-              saveAllGuesses(prev => [guessItem, ...prev]);
-
-              if (data.isAnswer) {
-                confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-                sound.playWinFanfare();
-                setIsAnswerRevealed(true);
-                setRevealedWord(data.answerWord || '정답');
-              } else {
-                sound.playSimilarityTone(guessItem.similarity);
-              }
-
-              if (channelRef.current) {
-                channelRef.current.postMessage({
-                  type: 'SYNC_NEW_GUESS',
-                  guess: guessItem,
-                  roundId
-                });
-              }
-            } else if (data.error) {
-              setGuessError(data.error);
-              setTimeout(() => setGuessError(null), 3000);
-            }
-          }
-        } catch (e) {
-          console.error('HTTP guess error:', e);
-        }
-      })();
-      return null;
-    }
-
     // Offline / Standalone Mock fallback
     let cleanWord = trimmed.replace(/[^가-힣a-zA-Z0-9]/g, '');
     let notice: string | undefined = undefined;
@@ -664,21 +554,6 @@ export const useGameSocket = (backendUrl?: string) => {
       return;
     }
 
-    if (isHttpFallback) {
-      (async () => {
-        try {
-          const baseHttp = getBaseHttpUrl();
-          await fetch(`${baseHttp}/api/vote?ngrok-skip-browser-warning=true`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ nickname })
-          });
-          fetchServerState();
-        } catch {}
-      })();
-      return;
-    }
-
     // Standalone fallback
     const prevTarget = secretWordRef.current;
     const nextIdx = (FALLBACK_SECRET_WORDS.indexOf(prevTarget) + 1) % FALLBACK_SECRET_WORDS.length;
@@ -741,26 +616,6 @@ export const useGameSocket = (backendUrl?: string) => {
       return;
     }
 
-    if (isHttpFallback) {
-      (async () => {
-        try {
-          const baseHttp = getBaseHttpUrl();
-          const res = await fetch(`${baseHttp}/api/chat?ngrok-skip-browser-warning=true`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ text: trimmed, nickname })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.message) {
-              setChatMessages(prev => [...prev.slice(-299), { ...data.message, isSelf: true }]);
-            }
-          }
-        } catch {}
-      })();
-      return;
-    }
-
     // Standalone fallback: normal chat message
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -795,7 +650,6 @@ export const useGameSocket = (backendUrl?: string) => {
     hallOfFame,
     voteState,
     isConnected,
-    isHttpFallback,
     isAnswerRevealed,
     revealedWord,
     roundId,

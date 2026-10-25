@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Wifi, WifiOff, Copy, Check, RotateCcw, X, ExternalLink, Smartphone, ShieldCheck, Zap } from 'lucide-react';
+import { Wifi, WifiOff, Copy, Check, RotateCcw, X, ExternalLink, Smartphone } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
-import { CLOUDFLARE_TUNNEL_HOST, NGROK_TUNNEL_HOST } from '../hooks/useGameSocket';
 
 interface ServerSettingsModalProps {
   isOpen: boolean;
@@ -42,11 +41,19 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
     }
   };
 
+  const defaultHost = (import.meta as any).env?.VITE_DEFAULT_SERVER_HOST || '7b27-211-177-123-232.ngrok-free.app';
   const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose });
 
-  const handleSelectHost = (host: string) => {
-    setInputServer(host);
-    onSaveServer(host);
+  const handleResetDefault = () => {
+    setInputServer(defaultHost);
+    onSaveServer(defaultHost);
+    onClose();
+  };
+
+  const handleSetLocal = () => {
+    const localHost = 'localhost:8000';
+    setInputServer(localHost);
+    onSaveServer(localHost);
     onClose();
   };
 
@@ -148,63 +155,23 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
             </div>
 
             {/* Quick Presets */}
-            <div className="space-y-1.5 pt-2">
-              <span className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">빠른 서버 전환:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleSelectHost(CLOUDFLARE_TUNNEL_HOST)}
-                  className={`p-2 rounded-xl border text-left transition flex flex-col justify-between ${
-                    currentServer.includes('trycloudflare')
-                      ? 'border-indigo-500/80 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 shadow-xs'
-                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-1 font-semibold text-[11px]">
-                    <Zap className="w-3 h-3 text-indigo-500 shrink-0" />
-                    <span>클라우드플레어</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 mt-1">사내망/보안망 권장</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectHost(NGROK_TUNNEL_HOST)}
-                  className={`p-2 rounded-xl border text-left transition flex flex-col justify-between ${
-                    currentServer.includes('ngrok')
-                      ? 'border-indigo-500/80 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 shadow-xs'
-                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-1 font-semibold text-[11px]">
-                    <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
-                    <span>ngrok 터널</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 mt-1">외부망/모바일</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectHost('localhost:8000')}
-                  className={`p-2 rounded-xl border text-left transition flex flex-col justify-between ${
-                    currentServer.includes('localhost')
-                      ? 'border-indigo-500/80 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 shadow-xs'
-                      : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-1 font-semibold text-[11px]">
-                    <RotateCcw className="w-3 h-3 text-zinc-400 shrink-0" />
-                    <span>로컬 PC</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 mt-1">localhost:8000</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Corporate Intranet Guide Box */}
-            <div className="mt-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200 block mb-1">🏢 사내망 접속 안내</span>
-              사내 보안망(Knox, Zscaler, 프록시)에서 WebSocket이나 ngrok을 차단할 경우 브라우저 콘솔에 CORS 에러가 발생할 수 있습니다. 상단의 <strong className="text-zinc-800 dark:text-zinc-200">클라우드플레어</strong>를 선택하시면 사내망에서도 HTTP 자동 전환으로 정상 플레이 가능합니다.
+            <div className="flex items-center space-x-2 pt-1 text-[11px]">
+              <span className="text-zinc-400">빠른 설정:</span>
+              <button
+                type="button"
+                onClick={handleResetDefault}
+                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                기본 원격 서버
+              </button>
+              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              <button
+                type="button"
+                onClick={handleSetLocal}
+                className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              >
+                로컬 (localhost:8000)
+              </button>
             </div>
           </form>
         </div>

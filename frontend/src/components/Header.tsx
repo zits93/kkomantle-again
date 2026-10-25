@@ -13,7 +13,6 @@ interface HeaderProps {
   nickname: string;
   onChangeNickname: (newNick: string) => void;
   isConnected: boolean;
-  isHttpFallback?: boolean;
   onOpenServerSettings?: () => void;
   onOpenNicknameModal?: () => void;
 }
@@ -27,7 +26,6 @@ export const Header: React.FC<HeaderProps> = ({
   nickname,
   onChangeNickname,
   isConnected,
-  isHttpFallback,
   onOpenServerSettings,
   onOpenNicknameModal,
 }) => {
@@ -58,10 +56,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div
             className="flex items-center space-x-1.5 px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-500/30 text-[10px] select-none cursor-pointer"
             onClick={onOpenServerSettings}
-            title={!isConnected ? '서버 연결 끊김' : isHttpFallback ? '서버 연결됨 (사내망 HTTP 모드)' : '서버 연결됨 (WebSocket)'}
+            title={!isConnected ? '서버 연결 끊김' : '서버 연결됨'}
           >
-            <span className={`block w-2 h-2 rounded-full ${!isConnected ? 'bg-red-400' : isHttpFallback ? 'bg-cyan-400' : 'bg-emerald-400'}`} />
-            <span className="font-mono text-emerald-100">{!isConnected ? '오프라인' : isHttpFallback ? 'HTTP 연결' : '온라인'}</span>
+            <span className={`block w-2 h-2 rounded-full ${!isConnected ? 'bg-red-400' : 'bg-emerald-400'}`} />
+            <span className="font-mono text-emerald-100">{!isConnected ? '오프라인' : '온라인'}</span>
           </div>
         </div>
 
@@ -138,27 +136,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div
               className="p-1 flex items-center justify-center select-none cursor-pointer"
               onClick={onOpenServerSettings}
-              title={
-                !isConnected
-                  ? '서버 연결 끊김 (클릭하여 서버 설정 및 원인 확인)'
-                  : isHttpFallback
-                  ? '서버 연결됨 (사내망 HTTP 모드)'
-                  : '서버 연결됨 (실시간 WebSocket 모드)'
-              }
+              title={isConnected ? '서버 연결됨' : '서버 연결 끊김'}
               aria-label={isConnected ? '서버 연결됨' : '서버 연결 끊김'}
             >
               {isConnected ? (
-                isHttpFallback ? (
-                  <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-60 motion-reduce:hidden" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                  </span>
-                ) : (
-                  <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 motion-reduce:hidden" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                  </span>
-                )
+                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 motion-reduce:hidden" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                </span>
               ) : (
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
               )}
