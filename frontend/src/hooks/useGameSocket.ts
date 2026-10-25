@@ -118,7 +118,7 @@ export const useGameSocket = (backendUrl?: string) => {
   const [lastWinAlert, setLastWinAlert] = useState<{ winner: string; isSelf: boolean } | null>(null);
   const [previousRoundAnswer, setPreviousRoundAnswer] = useState<string | null>(null);
   const [gameStats, setGameStats] = useState<GameStats>({
-    totalWords: 119656,
+    totalWords: 500000,
     top1000Cutoff: 24.0,
     top100Cutoff: 45.0,
     top10Cutoff: 58.0,
