@@ -19,12 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup: initialize first secret target word
+# Startup: initialize first secret target word or restore active round
 @app.on_event("startup")
 def startup_event():
-    initial_word = word_service.get_random_word()
-    game_state.set_target_word(initial_word)
-    print(f"🚀 Kkomantle Again backend started. Target word: {initial_word}")
+    if not game_state.has_active_round():
+        initial_word = word_service.get_random_word()
+        game_state.set_target_word(initial_word)
+        print(f"🚀 Kkomantle Again backend started with new round. Target word: {initial_word}")
+    else:
+        print(f"🚀 Kkomantle Again backend resumed active round [{game_state.round_id}]. Target word: {game_state.target_word}")
 
 @app.get("/api/health")
 def health_check():

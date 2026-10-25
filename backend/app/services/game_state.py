@@ -12,15 +12,19 @@ class GameState:
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_db()
 
-        self.round_id: str = f"round_{int(time.time())}"
+        self.round_id: str = f"round_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
         self.target_word: str = "인공지능"
         self.round_start_time: float = time.time()
         self.solved_by: Optional[str] = None
         self.once_more_voters: Set[str] = set()
         self.all_guesses: List[Dict[str, Any]] = []
+        self._is_restored: bool = False
 
         # Restore latest active round from database if available
         self._load_active_round()
+
+    def has_active_round(self) -> bool:
+        return self._is_restored and bool(self.target_word)
 
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)
@@ -67,6 +71,7 @@ class GameState:
             if row:
                 self.round_id = row["round_id"]
                 self.target_word = row["target_word"]
+                self._is_restored = True
                 # Load existing guesses for this active round
                 cursor.execute("""
                     SELECT id, user_id as userId, nickname, word, similarity, rank, timestamp, is_answer as isAnswer
@@ -91,7 +96,7 @@ class GameState:
             else:
                 # Initialize first round in DB
                 cursor.execute("""
-                    INSERT INTO game_rounds (round_id, target_word, is_active)
+                    INSERT OR REPLACE INTO game_rounds (round_id, target_word, is_active)
                     VALUES (?, ?, 1)
                 """, (self.round_id, self.target_word))
                 conn.commit()
@@ -101,15 +106,16 @@ class GameState:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("UPDATE game_rounds SET is_active = 0 WHERE is_active = 1")
-            self.round_id = f"round_{int(time.time())}"
+            self.round_id = f"round_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
             self.target_word = word.strip()
             self.round_start_time = time.time()
             self.solved_by = None
             self.once_more_voters.clear()
             self.all_guesses.clear()
+            self._is_restored = True
 
             cursor.execute("""
-                INSERT INTO game_rounds (round_id, target_word, is_active)
+                INSERT OR REPLACE INTO game_rounds (round_id, target_word, is_active)
                 VALUES (?, ?, 1)
             """, (self.round_id, self.target_word))
             conn.commit()
