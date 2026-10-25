@@ -1,4 +1,5 @@
 export type ThemeMode = 'light' | 'dark' | 'excel';
+export type ThemePreference = 'system' | 'light' | 'dark' | 'excel';
 
 export interface User {
   id: string;

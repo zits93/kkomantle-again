@@ -355,7 +355,7 @@ export const ExcelView: React.FC<ExcelViewProps> = ({
             <span className="opacity-80">|</span>
             <span>선택 영역: {selectedCell.col}{selectedCell.row}</span>
             <span className="opacity-80">|</span>
-            <span>사본DB: {(gameStats?.totalWords ?? 119656).toLocaleString()}단어</span>
+            <span>사본DB: {(gameStats?.totalWords ?? 500000).toLocaleString()}단어</span>
             <span className="opacity-80">|</span>
             <span>1000위 컷: ≥{(gameStats?.top1000Cutoff ?? 24.0).toFixed(1)}%</span>
           </div>

@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ThemeMode } from '../types/game';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { ThemeMode, ThemePreference } from '../types/game';
 
 interface ThemeContextType {
-  theme: ThemeMode;
+  theme: ThemeMode;               // Effective active mode ('light' | 'dark' | 'excel')
+  preference: ThemePreference;   // User setting ('system' | 'light' | 'dark' | 'excel')
   setTheme: (theme: ThemeMode) => void;
+  setPreference: (pref: ThemePreference) => void;
   toggleTheme: () => void;
   toggleExcel: () => void;
 }
@@ -11,33 +13,70 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('kkomantle_theme');
-    if (saved === 'dark' || saved === 'excel' || saved === 'light') {
-      return saved;
+  // 1. Preference state: 'system' by default, or explicit override from localStorage
+  const [preference, setPreference] = useState<ThemePreference>(() => {
+    const saved = localStorage.getItem('kkomantle_theme_pref');
+    if (saved === 'dark' || saved === 'light' || saved === 'excel' || saved === 'system') {
+      return saved as ThemePreference;
     }
-    return 'light'; // Default: Clean Light Mode
+    // Backward compatibility with previous 'kkomantle_theme' key
+    const legacy = localStorage.getItem('kkomantle_theme');
+    if (legacy === 'dark' || legacy === 'light' || legacy === 'excel') {
+      return legacy as ThemePreference;
+    }
+    return 'system';
   });
 
-  const [previousTheme, setPreviousTheme] = useState<'light' | 'dark'>('light');
+  // 2. Track OS dark mode in real time
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    localStorage.setItem('kkomantle_theme', theme);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemIsDark(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // 3. Resolve effective ThemeMode
+  const effectiveTheme: ThemeMode = React.useMemo(() => {
+    if (preference === 'excel') return 'excel';
+    if (preference === 'dark') return 'dark';
+    if (preference === 'light') return 'light';
+    // 'system'
+    return systemIsDark ? 'dark' : 'light';
+  }, [preference, systemIsDark]);
+
+  const [previousNonExcelTheme, setPreviousNonExcelTheme] = useState<'light' | 'dark'>(() => {
+    return systemIsDark ? 'dark' : 'light';
+  });
+
+  // 4. Apply DOM classes
+  useEffect(() => {
+    localStorage.setItem('kkomantle_theme_pref', preference);
     const root = document.documentElement;
 
-    if (theme === 'excel') {
+    if (effectiveTheme === 'excel') {
       root.classList.add('excel-mode');
       root.classList.remove('dark');
-    } else if (theme === 'dark') {
+    } else if (effectiveTheme === 'dark') {
       root.classList.remove('excel-mode');
       root.classList.add('dark');
-      setPreviousTheme('dark');
+      setPreviousNonExcelTheme('dark');
     } else {
       root.classList.remove('excel-mode');
       root.classList.remove('dark');
-      setPreviousTheme('light');
+      setPreviousNonExcelTheme('light');
     }
-  }, [theme]);
+  }, [effectiveTheme, preference]);
 
   // Global hotkeys: Alt+X or Esc 2 times for Excel stealth
   useEffect(() => {
@@ -65,20 +104,41 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timer);
     };
-  }, [theme, previousTheme]);
+  }, [effectiveTheme, previousNonExcelTheme]);
 
-  // Toggle between Light and Dark
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  // Toggle between Light and Dark (Explicit user override)
+  const toggleTheme = useCallback(() => {
+    setPreference(prev => {
+      const currentActive = prev === 'system' ? (systemIsDark ? 'dark' : 'light') : prev;
+      return currentActive === 'dark' ? 'light' : 'dark';
+    });
+  }, [systemIsDark]);
 
   // Toggle Excel Stealth Mode
-  const toggleExcel = () => {
-    setTheme(prev => (prev === 'excel' ? previousTheme : 'excel'));
-  };
+  const toggleExcel = useCallback(() => {
+    setPreference(prev => {
+      if (prev === 'excel') {
+        return previousNonExcelTheme;
+      }
+      return 'excel';
+    });
+  }, [previousNonExcelTheme]);
+
+  const setTheme = useCallback((theme: ThemeMode) => {
+    setPreference(theme);
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, toggleExcel }}>
+    <ThemeContext.Provider
+      value={{
+        theme: effectiveTheme,
+        preference,
+        setTheme,
+        setPreference,
+        toggleTheme,
+        toggleExcel,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

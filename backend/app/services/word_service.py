@@ -14,7 +14,7 @@ class WordService:
             "지구", "태양", "달빛", "별빛", "은하", "바다", "하늘", "고양이", "강아지", "행복"
         ]
         self._load_target_words()
-        self._load_100k_dictionary()
+        self._load_dictionary()
         self.normalizer = KoreanNormalizer(self.valid_words_set, self.words_pool, self.curated_target_words)
 
     def _load_target_words(self):
@@ -30,17 +30,22 @@ class WordService:
             except Exception as e:
                 print(f"Failed to load curated targets: {e}")
 
-    def _load_100k_dictionary(self):
-        dict_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "korean_words_100k.txt")
+    def _load_dictionary(self):
+        # Prefer 500k dictionary, fallback to 100k
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+        dict_500k = os.path.join(data_dir, "korean_words_500k.txt")
+        dict_100k = os.path.join(data_dir, "korean_words_100k.txt")
+        dict_path = dict_500k if os.path.exists(dict_500k) else dict_100k
+
         if os.path.exists(dict_path):
             try:
                 with open(dict_path, "r", encoding="utf-8") as f:
                     words = [line.strip() for line in f if line.strip()]
                     self.words_pool = words
                     self.valid_words_set = set(words)
-                    print(f"📖 Loaded {len(self.words_pool)} Korean words from dictionary.")
+                    print(f"📖 Loaded {len(self.words_pool)} Korean words from {os.path.basename(dict_path)}.")
             except Exception as e:
-                print(f"Failed to load 100k dict: {e}")
+                print(f"Failed to load dictionary: {e}")
                 self.words_pool = self.curated_target_words
                 self.valid_words_set = set(self.curated_target_words)
         else:

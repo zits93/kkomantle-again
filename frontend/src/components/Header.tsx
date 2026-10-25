@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenServerSettings,
   onOpenNicknameModal,
 }) => {
-  const { theme, toggleTheme, toggleExcel } = useTheme();
+  const { theme, preference, toggleTheme, toggleExcel } = useTheme();
   const [showUsersPopover, setShowUsersPopover] = useState(false);
   const [isEditingNick, setIsEditingNick] = useState(false);
   const [nickInput, setNickInput] = useState(nickname);
@@ -220,8 +220,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Light / Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 transition"
-            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 transition cursor-pointer"
+            title={
+              preference === 'system'
+                ? `현재 시스템 테마 적용 중 (${theme === 'dark' ? '다크' : '라이트'}) · 클릭 시 전환`
+                : theme === 'dark'
+                ? '라이트 모드로 전환'
+                : '다크 모드로 전환'
+            }
+            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-zinc-600" />}
           </button>

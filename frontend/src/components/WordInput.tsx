@@ -14,7 +14,7 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
   const [showTierGuide, setShowTierGuide] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const totalWords = gameStats?.totalWords ?? 119656;
+  const totalWords = gameStats?.totalWords ?? 500000;
   const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
   const top100Cutoff = gameStats?.top100Cutoff ?? 45.0;
   const top10Cutoff = gameStats?.top10Cutoff ?? 58.0;

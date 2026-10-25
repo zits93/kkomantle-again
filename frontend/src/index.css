@@ -4,10 +4,16 @@
 
 :root {
   color-scheme: light;
+  /* Perceptual Neutral Scale (oklch) - Light */
+  --canvas-bg: oklch(98.5% 0.002 260);      /* #fafafa zinc-50 clean canvas */
+  --canvas-text: oklch(21% 0.006 260);     /* #18181b zinc-900 */
 }
 
 .dark {
   color-scheme: dark;
+  /* Perceptual Neutral Scale (oklch) - Dark */
+  --canvas-bg: oklch(14.5% 0.005 260);     /* #09090b zinc-950 deep canvas */
+  --canvas-text: oklch(96.5% 0.002 260);   /* #f4f4f5 zinc-100 */
 }
 
 body {
@@ -17,18 +23,9 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Light Mode Clean Canvas */
-body {
-  background-color: #f8fafc;
-  color: #0f172a;
-}
-
-/* Dark Mode Clean Canvas */
-.dark body {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: var(--canvas-bg);
+  color: var(--canvas-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Excel Theme Styles */

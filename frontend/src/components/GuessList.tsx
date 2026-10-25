@@ -86,7 +86,7 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
   const [sortMode, setSortMode] = useState<SortMode>('similarity');
 
   const top1000Cutoff = gameStats?.top1000Cutoff ?? 24.0;
-  const totalWords = gameStats?.totalWords ?? 119656;
+  const totalWords = gameStats?.totalWords ?? 500000;
 
   const displayList = useSortedGuesses(allGuesses, sortMode);
 
