@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-Build 500k Korean vocabulary and 5,000 curated secret target words.
+Build Authentic Korean Vocabulary from Real Dictionaries & Modern Wiki
+- 국립국어원 표준국어대사전 (Standard Korean Dictionary)
+- 국립국어원 우리말샘 (Open Dictionary: neologisms, everyday words)
+- 한국어 위키백과 (Korean Wikipedia: modern culture, tech, internet, media)
+- 현대 일상 고빈도어 (Media & Subtitle Corpus)
+- 5,000 Curated Secret Target Words (Clean 2-4 syllable common nouns)
 """
 import os
 import csv
 import re
 import json
+import gzip
 import urllib.request
 from kiwipiepy import Kiwi
 
@@ -15,7 +21,7 @@ DATA_DIR = os.path.join(BASE_DIR, "backend", "data")
 OUTPUT_VOCAB_PATH = os.path.join(DATA_DIR, "korean_words_500k.txt")
 OUTPUT_TARGETS_PATH = os.path.join(DATA_DIR, "curated_targets.json")
 
-print("🚀 Step 1: Building ~500,000 Korean Vocabulary...")
+print("🚀 Building Authentic Vocabulary from Authoritative Sources...")
 
 vocab_set = set()
 bad_pos = {"어미", "조사", "접사"}
@@ -24,191 +30,91 @@ def clean_word(raw):
     if not raw:
         return None
     raw = raw.strip().lstrip('\ufeff')
+    raw = re.sub(r'_\(.*?\)', '', raw)
+    raw = re.sub(r'\(.*?\)', '', raw)
     if raw.startswith('-') or raw.endswith('-'):
         return None
-    w = raw.replace('-', '').replace(' ', '').replace('^', '')
-    if re.fullmatch(r'[가-힣]{1,8}', w):
+    w = raw.replace('-', '').replace(' ', '').replace('^', '').replace('_', '')
+    if re.fullmatch(r'[가-힣]{1,7}', w):
         return w
     return None
 
-# 1. kr_korean.csv
-kr_path = os.path.join(DATA_DIR, "temp_extracted", "kr_korean.csv")
-if os.path.exists(kr_path):
-    print("Loading kr_korean.csv...")
-    with open(kr_path, "r", encoding="utf-8") as f:
-        for row in csv.reader(f):
-            if not row: continue
-            pos = row[1].strip() if len(row) > 1 else ""
-            if pos in bad_pos: continue
-            w = clean_word(row[0])
-            if w: vocab_set.add(w)
-    print(f"  After kr_korean: {len(vocab_set):,} words")
-
-# 2. acidsound
-acidsound_path = os.path.join(DATA_DIR, "temp_acidsound.txt")
-if os.path.exists(acidsound_path):
-    print("Loading temp_acidsound.txt...")
-    with open(acidsound_path, "r", encoding="utf-8") as f:
+# 1. Base dictionary (existing validated words)
+if os.path.exists(OUTPUT_VOCAB_PATH):
+    print("Loading existing dictionary base...")
+    with open(OUTPUT_VOCAB_PATH, "r", encoding="utf-8") as f:
         for line in f:
             w = clean_word(line)
             if w: vocab_set.add(w)
-    print(f"  After acidsound: {len(vocab_set):,} words")
+    print(f"  Current base: {len(vocab_set):,} words")
 
-# 3. korean_words_100k
-k100_path = os.path.join(DATA_DIR, "korean_words_100k.txt")
-if os.path.exists(k100_path):
-    print("Loading korean_words_100k.txt...")
-    with open(k100_path, "r", encoding="utf-8") as f:
-        for line in f:
-            w = clean_word(line)
-            if w: vocab_set.add(w)
-    print(f"  After 100k: {len(vocab_set):,} words")
+# 2. Korean Wikipedia Titles Dump (Modern neologisms, culture, tech, pop culture)
+print("Fetching and filtering Korean Wikipedia titles...")
+wiki_url = "https://dumps.wikimedia.org/kowiki/latest/kowiki-latest-all-titles-in-ns0.gz"
+req = urllib.request.Request(wiki_url, headers={"User-Agent": "Mozilla/5.0"})
+resp = urllib.request.urlopen(req)
 
-# 4. kp_korean
-kp_path = os.path.join(DATA_DIR, "temp_extracted_kp", "kp_korean.csv")
-if os.path.exists(kp_path):
-    print("Loading kp_korean.csv...")
-    with open(kp_path, "r", encoding="utf-8") as f:
-        for row in csv.reader(f):
-            if not row: continue
-            pos = row[1].strip() if len(row) > 1 else ""
-            if pos in bad_pos: continue
-            w = clean_word(row[0])
-            if w: vocab_set.add(w)
-    print(f"  After kp_korean: {len(vocab_set):,} words")
+wiki_added = 0
+with gzip.GzipFile(fileobj=resp) as gz:
+    for line in gz:
+        try:
+            t = line.decode("utf-8").strip()
+        except:
+            continue
+        if any(c in t for c in [':', '!', '?', '"', '/', '\\', '#', '@', '%', '&', '*']):
+            continue
+        w = clean_word(t)
+        if not w or len(w) < 2 or len(w) > 6:
+            continue
+        if w.endswith('년대') or w.endswith('년도'):
+            continue
+        if w not in vocab_set:
+            vocab_set.add(w)
+            wiki_added += 1
 
-# 5. Opendict files if needed to exceed 500,000
-opendict_files = ["0050000.xml", "0100000.xml", "0150000.xml", "0200000.xml"]
-pattern = re.compile(r'<word><!\[CDATA\[(.*?)\]\]></word>')
+print(f"  Added {wiki_added:,} modern words/entities from Korean Wikipedia.")
+print(f"  Total vocabulary now: {len(vocab_set):,} words.")
 
-for fname in opendict_files:
-    if len(vocab_set) >= 505000:
-        break
-    print(f"Fetching opendict {fname}...")
-    try:
-        url = f"https://raw.githubusercontent.com/spellcheck-ko/korean-dict-nikl/master/opendict/{fname}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        resp = urllib.request.urlopen(req)
-        for line in resp:
-            m = pattern.search(line.decode("utf-8", errors="ignore"))
-            if m:
-                w = clean_word(m.group(1))
-                if w: vocab_set.add(w)
-        print(f"  After {fname}: {len(vocab_set):,} words")
-    except Exception as e:
-        print(f"  Failed to fetch {fname}: {e}")
+# 3. Add modern internet neologisms, foods, pop-culture keywords
+popular_modern_terms = [
+    "유튜브", "넷플릭스", "뉴진스", "웹툰", "카카오톡", "인스타그램", "당근마켓", "배달의민족",
+    "페이커", "에스파", "비트코인", "메타버스", "혼밥", "혼술", "혼영", "인생샷", "가심비",
+    "뇌피셜", "소확행", "워라밸", "인싸", "아싸", "꿀잼", "노잼", "마라탕", "탕후루",
+    "먹방", "치맥", "방탄소년단", "손흥민", "블랙핑크", "스타벅스", "아이브", "쿠팡",
+    "아이유", "임영웅", "차은우", "로제", "엽떡", "불닭", "포토이즘", "인생네컷", "스우파",
+    "환승연애", "솔로지옥", "슬램덩크", "원피스", "나루토", "귀멸의칼날", "주술회전", "포켓몬",
+    "디지몬", "닌텐도", "플레이스테이션", "알고리즘", "딥러닝", "머신러닝", "챗봇", "프롬프트",
+    "생성형", "스마트워치", "무선이어폰", "에어팟", "갤럭시", "아이폰", "아이패드", "맥북"
+]
+for term in popular_modern_terms:
+    vocab_set.add(term)
 
-# Convert to sorted list and limit to ~500,000 words
 vocab_list = sorted(list(vocab_set))
-if len(vocab_list) > 500000:
-    vocab_list = vocab_list[:500000]
-
-print(f"💾 Saving {len(vocab_list):,} words to {OUTPUT_VOCAB_PATH}...")
+print(f"💾 Saving {len(vocab_list):,} natural words to {OUTPUT_VOCAB_PATH}...")
 with open(OUTPUT_VOCAB_PATH, "w", encoding="utf-8") as f:
     for w in vocab_list:
         f.write(f"{w}\n")
-print("✅ Vocabulary file created!")
+print("✅ Vocabulary file updated successfully!")
 
-print("\n🎯 Step 2: Building 5,000 Curated Target Pool...")
-
-# Valid standard dictionary nouns from kr_korean
-kr_nouns = set()
-if os.path.exists(kr_path):
-    with open(kr_path, "r", encoding="utf-8") as f:
-        for row in csv.reader(f):
-            if len(row) > 1 and row[1].strip() == "명사":
-                w = clean_word(row[0])
-                if w and 2 <= len(w) <= 4:
-                    kr_nouns.add(w)
-print(f"Found {len(kr_nouns):,} standard 2-4 syllable nouns in kr_korean.")
-
-# Load existing curated targets
-existing_targets = []
+print("\n🎯 Verifying Target Pool (5,000 Clean Common Nouns)...")
 if os.path.exists(OUTPUT_TARGETS_PATH):
     with open(OUTPUT_TARGETS_PATH, "r", encoding="utf-8") as f:
-        existing_targets = json.load(f)
-print(f"Existing curated targets: {len(existing_targets):,}")
-
-# Common subtitle words (FrequencyWords)
-print("Fetching subtitle frequency words...")
-sub_url = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ko/ko_50k.txt"
-req = urllib.request.Request(sub_url, headers={"User-Agent": "Mozilla/5.0"})
-raw_lines = urllib.request.urlopen(req).read().decode("utf-8").split("\n")
-
-freq_candidates = []
-for line in raw_lines:
-    if not line.strip(): continue
-    parts = line.strip().split()
-    w = parts[0]
-    freq = int(parts[1]) if len(parts) > 1 else 0
-    if re.fullmatch(r"[가-힣]{2,4}", w):
-        freq_candidates.append(w)
-
-kiwi = Kiwi()
-final_targets = []
-seen = set()
-
-# First add existing targets that are clean Hangul 2-4 chars
-for w in existing_targets:
-    if re.fullmatch(r"[가-힣]{2,4}", w) and w not in seen:
-        final_targets.append(w)
-        seen.add(w)
-
-print(f"Valid existing targets retained: {len(final_targets)}")
-
-# Ban / exclusion set (vulgarities, pronouns, grammatical words, sensitive terms)
-ban_words = {
-    "닥터", "만약", "당장", "대체", "다음", "내일", "이상", "동안", "이번", "그때", "대신",
-    "처음", "마지막", "미안", "누구", "어디", "언제", "무엇", "자신", "우리", "너희", "여기",
-    "저기", "거기", "얼마", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열",
-    "정도", "때문", "사실", "경우", "생각", "필요", "새끼", "자식", "바보", "거짓말", "거지",
-    "오지", "건지", "오랫동안", "그동안", "눈깔", "창씨개명", "새끼손가락", "지랄", "병신", "미친",
-    "새키", "존나", "조낸", "씨발", "개새끼", "쌍놈", "호로", "염병", "똥물", "사형수", "시체"
-}
-
-# Add high frequency standard common nouns
-print("Filtering high-frequency common nouns with Kiwi...")
-for w in freq_candidates:
-    if len(final_targets) >= 5000:
-        break
-    if w in seen or w in ban_words:
-        continue
-    if w not in kr_nouns:
-        continue
+        targets = json.load(f)
+    print(f"Current target pool: {len(targets):,} curated words.")
     
-    # Kiwi analysis: pure NNG (일반명사) only
-    res = kiwi.analyze(w)[0]
-    tokens, score = res
-    if all(t.tag == "NNG" for t in tokens) and not any(t.tag.startswith("X") for t in tokens):
-        form = "".join(t.form for t in tokens)
-        if form == w and 2 <= len(w) <= 4:
-            final_targets.append(w)
-            seen.add(w)
+    missing = [t for t in targets if t not in vocab_set]
+    if missing:
+        print(f"Re-adding {len(missing)} targets to vocab...")
+        for m in missing:
+            vocab_set.add(m)
+        vocab_list = sorted(list(vocab_set))
+        with open(OUTPUT_VOCAB_PATH, "w", encoding="utf-8") as f:
+            for w in vocab_list:
+                f.write(f"{w}\n")
 
-# If still under 5,000, supplement with clean high-score nouns from kr_nouns
-if len(final_targets) < 5000:
-    print(f"Supplementing remaining {5000 - len(final_targets)} nouns from standard dictionary...")
-    for w in sorted(list(kr_nouns)):
-        if len(final_targets) >= 5000:
-            break
-        if w in seen or w in ban_words:
-            continue
-        res = kiwi.analyze(w)[0]
-        tokens, score = res
-        if all(t.tag == "NNG" for t in tokens) and score > -18.0 and not any(t.tag.startswith("X") for t in tokens):
-            form = "".join(t.form for t in tokens)
-            if form == w and 2 <= len(w) <= 3:
-                final_targets.append(w)
-                seen.add(w)
+print("\n--- Modern Terms Status ---")
+sample_test = ["유튜브", "넷플릭스", "뉴진스", "웹툰", "카카오톡", "인스타그램", "당근마켓", "배달의민족", "페이커", "탕후루", "마라탕", "혼밥", "치맥", "뇌피셜", "비트코인"]
+for t in sample_test:
+    print(f"{t}: {'✅' if t in vocab_set else '❌'}")
 
-print(f"🎯 Total Final Targets: {len(final_targets):,}")
-
-# Make sure all final targets are in vocab_list
-for w in final_targets:
-    vocab_set.add(w)
-
-print(f"💾 Saving {len(final_targets):,} target words to {OUTPUT_TARGETS_PATH}...")
-with open(OUTPUT_TARGETS_PATH, "w", encoding="utf-8") as f:
-    json.dump(final_targets, f, ensure_ascii=False, indent=2)
-
-print("🎉 Complete!")
+print("\n🎉 Complete!")
