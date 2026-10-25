@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WifiOff, Sparkles, Volume2, Target, CheckCircle2 } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useGameSocket } from './hooks/useGameSocket';
 import { Header } from './components/Header';
@@ -100,8 +101,9 @@ export const AppContent: React.FC = () => {
 
       {/* Persistent Offline Warning Banner when Disconnected */}
       {!isConnected && (
-        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center text-xs text-amber-700 dark:text-amber-400 font-medium">
-          ⚠️ 서버와 연결이 끊어졌습니다. 단어는 현재 브라우저에만 저장되며 실시간 기능이 제한됩니다.
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center space-x-1.5 text-xs text-amber-700 dark:text-amber-400 font-medium">
+          <WifiOff className="w-3.5 h-3.5 shrink-0 opacity-80" />
+          <span>서버와 연결이 끊어졌습니다. 단어는 현재 브라우저에만 저장되며 실시간 기능이 제한됩니다.</span>
         </div>
       )}
 
@@ -116,14 +118,22 @@ export const AppContent: React.FC = () => {
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
               : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
           }`}>
-            <span>
-              {lastWinAlert.isSelf
-                ? '🎉 축하합니다! 정답을 맞추셨습니다!'
-                : `📢 누군가(${lastWinAlert.winner}님)가 정답을 맞췄습니다!`}
+            <span className="flex items-center space-x-1.5">
+              {lastWinAlert.isSelf ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>축하합니다! 정답을 맞추셨습니다!</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4 text-zinc-500 shrink-0" />
+                  <span>{lastWinAlert.winner}님이 정답을 맞췄습니다!</span>
+                </>
+              )}
             </span>
             <button
               onClick={() => setLastWinAlert(null)}
-              className="ml-3 px-2 py-0.5 rounded text-xs border border-current opacity-70 hover:opacity-100"
+              className="ml-3 px-2 py-0.5 rounded-md text-xs border border-current opacity-70 hover:opacity-100 cursor-pointer"
             >
               닫기
             </button>
@@ -134,13 +144,16 @@ export const AppContent: React.FC = () => {
       {/* Previous Round Answer Banner on Round Reset */}
       {previousRoundAnswer && (
         <div className="w-full max-w-2xl mx-auto my-2 px-4">
-          <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 flex items-center justify-between text-xs sm:text-sm font-medium">
-            <span>
-              🎯 이전 라운드 정답: <b>[{previousRoundAnswer}]</b> (새로운 단어가 출제되었습니다!)
+          <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-zinc-800 dark:text-zinc-200 flex items-center justify-between text-xs sm:text-sm font-medium">
+            <span className="flex items-center space-x-1.5">
+              <Target className="w-4 h-4 text-zinc-500 shrink-0" />
+              <span>
+                이전 라운드 정답: <span className="font-semibold text-zinc-900 dark:text-zinc-100">[{previousRoundAnswer}]</span> (새로운 단어가 출제되었습니다)
+              </span>
             </span>
             <button
               onClick={() => setPreviousRoundAnswer(null)}
-              className="ml-3 px-2 py-0.5 rounded text-xs border border-current opacity-70 hover:opacity-100"
+              className="ml-3 px-2 py-0.5 rounded-md text-xs border border-zinc-300 dark:border-zinc-700 opacity-70 hover:opacity-100 cursor-pointer"
             >
               확인
             </button>

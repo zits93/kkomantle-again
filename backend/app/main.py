@@ -24,7 +24,8 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     if not game_state.has_active_round():
-        initial_word = word_service.get_random_word()
+        recent_used = game_state.get_recent_target_words(100)
+        initial_word = word_service.get_random_word(exclude=recent_used)
         game_state.set_target_word(initial_word)
         print(f"🚀 Kkomantle Again backend started with new round. Target word: {initial_word}")
     else:
@@ -240,7 +241,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 if vote_result["should_reset"]:
                     # Reveal previous answer to everyone and start new round
                     prev_word = game_state.target_word
-                    new_word = word_service.get_random_word(exclude=prev_word)
+                    recent_used = game_state.get_recent_target_words(100)
+                    recent_used.add(prev_word)
+                    new_word = word_service.get_random_word(exclude=recent_used)
                     game_state.set_target_word(new_word)
 
                     reset_msg = chat_service.add_message(

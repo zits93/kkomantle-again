@@ -27,6 +27,17 @@ class GameState:
     def has_active_round(self) -> bool:
         return self._is_restored and bool(self.target_word)
 
+    def get_recent_target_words(self, limit: int = 100) -> Set[str]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT target_word
+                FROM game_rounds
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (limit,))
+            return {row["target_word"] for row in cursor.fetchall()}
+
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row

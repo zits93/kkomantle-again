@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { CornerDownLeft, Info } from 'lucide-react';
+import { CornerDownLeft, Info, AlertCircle } from 'lucide-react';
 import { GameStats } from '../types/game';
 
 interface WordInputProps {
@@ -62,9 +62,9 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
           <p
             role="alert"
             aria-live="assertive"
-            className="text-xs text-rose-500 font-medium mt-1.5 px-2 animate-[bounce_0.5s_ease-in-out_2] motion-reduce:animate-none flex items-center space-x-1"
+            className="text-xs text-rose-500 font-medium mt-1.5 px-2 animate-[bounce_0.5s_ease-in-out_2] motion-reduce:animate-none flex items-center space-x-1.5"
           >
-            <span>⚠️</span>
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         )}
