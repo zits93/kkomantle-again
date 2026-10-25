@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from './context/ThemeContext';
 import { useGameSocket } from './hooks/useGameSocket';
 import { Header } from './components/Header';
@@ -8,10 +8,18 @@ import { WordInput } from './components/WordInput';
 import { GuessList } from './components/GuessList';
 import { ChatWidget } from './components/ChatWidget';
 import { HallOfFameModal } from './components/HallOfFameModal';
+import { ActiveUsersModal } from './components/ActiveUsersModal';
+import { MobileBottomBar } from './components/MobileBottomBar';
 
 export const AppContent: React.FC = () => {
   const { theme } = useTheme();
   const [isHallOfFameOpen, setIsHallOfFameOpen] = useState(false);
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const [lastReadChatId, setLastReadChatId] = useState<string>(() => {
+    return localStorage.getItem('kkomantle_last_read_id') || '';
+  });
 
   const {
     nickname,
@@ -33,6 +41,23 @@ export const AppContent: React.FC = () => {
     setLastWinAlert,
     setPreviousRoundAnswer,
   } = useGameSocket();
+
+  // Compute unread count for bottom bar badge
+  const unreadChatCount = React.useMemo(() => {
+    if (isChatOpen) return 0;
+    if (!lastReadChatId) return chatMessages.length;
+    const lastIdx = chatMessages.findIndex(m => m.id === lastReadChatId);
+    if (lastIdx === -1) return chatMessages.length;
+    return Math.max(0, chatMessages.length - 1 - lastIdx);
+  }, [chatMessages, lastReadChatId, isChatOpen]);
+
+  useEffect(() => {
+    if (isChatOpen && chatMessages.length > 0) {
+      const latest = chatMessages[chatMessages.length - 1];
+      setLastReadChatId(latest.id);
+      localStorage.setItem('kkomantle_last_read_id', latest.id);
+    }
+  }, [isChatOpen, chatMessages]);
 
   const handleWordSubmit = (word: string) => {
     const res = submitGuess(word);
@@ -113,7 +138,7 @@ export const AppContent: React.FC = () => {
           onSubmitWord={handleWordSubmit}
         />
       ) : (
-        <main className="flex-1 flex flex-col justify-start">
+        <main className="flex-1 flex flex-col justify-start pb-24 md:pb-12">
           {/* Word Input */}
           <WordInput onSubmit={handleWordSubmit} />
 
@@ -133,6 +158,10 @@ export const AppContent: React.FC = () => {
         nickname={nickname}
         isAnswerRevealed={isAnswerRevealed}
         revealedWord={revealedWord}
+        isOpen={isChatOpen}
+        onOpen={() => setIsChatOpen(true)}
+        onClose={() => setIsChatOpen(false)}
+        unreadCount={unreadChatCount}
       />
 
       {/* Hall of Fame Modal */}
@@ -141,6 +170,25 @@ export const AppContent: React.FC = () => {
         onClose={() => setIsHallOfFameOpen(false)}
         entries={hallOfFame}
         currentNickname={nickname}
+      />
+
+      {/* Mobile Active Users Modal */}
+      <ActiveUsersModal
+        isOpen={isUsersModalOpen}
+        onClose={() => setIsUsersModalOpen(false)}
+        users={activeUsers}
+        currentNickname={nickname}
+      />
+
+      {/* Mobile Bottom Navigation Bar (Hidden on desktop & Excel mode) */}
+      <MobileBottomBar
+        activeUsers={activeUsers}
+        voteState={voteState}
+        unreadCount={unreadChatCount}
+        onOpenUsers={() => setIsUsersModalOpen(true)}
+        onOpenHallOfFame={() => setIsHallOfFameOpen(true)}
+        onVoteOnceMore={voteOnceMore}
+        onToggleChat={() => setIsChatOpen(prev => !prev)}
       />
     </div>
   );
