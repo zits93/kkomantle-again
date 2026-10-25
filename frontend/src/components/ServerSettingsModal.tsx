@@ -135,15 +135,16 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
 
           {/* Server Config Form */}
           <form onSubmit={handleSave} className="space-y-2">
-            <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="server-host-input" className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
               서버 호스트 주소 (도메인 또는 IP:포트)
             </label>
             <div className="flex space-x-1.5">
               <input
+                id="server-host-input"
                 type="text"
                 value={inputServer}
                 onChange={e => setInputServer(e.target.value)}
-                placeholder="예: 7b27-211-177-123-232.ngrok-free.app"
+                placeholder="예: your-tunnel.ngrok-free.app 또는 192.168.0.5:8000"
                 className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-500 font-mono"
               />
               <button

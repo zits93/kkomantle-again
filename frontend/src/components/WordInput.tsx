@@ -32,8 +32,12 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
   return (
     <div className="w-full max-w-2xl mx-auto my-6 px-4">
       <form onSubmit={handleSubmit} className="relative">
+        <label htmlFor="kkomantle-word-input" className="sr-only">
+          추측할 단어를 입력하세요
+        </label>
         <div className="flex items-center rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm focus-within:border-zinc-900 dark:focus-within:border-zinc-300 focus-within:ring-1 focus-within:ring-zinc-900 dark:focus-within:ring-zinc-300 transition-all overflow-hidden">
           <input
+            id="kkomantle-word-input"
             ref={inputRef}
             type="text"
             value={word}
@@ -47,6 +51,7 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
           <button
             type="submit"
             disabled={!word.trim() || disabled}
+            aria-label="단어 제출"
             className="mr-2 px-3.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed font-medium text-xs flex items-center space-x-1 transition"
           >
             <span>확인</span>
@@ -54,7 +59,11 @@ export const WordInput: React.FC<WordInputProps> = ({ onSubmit, disabled, error,
           </button>
         </div>
         {error && (
-          <p className="text-xs text-rose-500 font-medium mt-1.5 px-2 animate-bounce flex items-center space-x-1">
+          <p
+            role="alert"
+            aria-live="assertive"
+            className="text-xs text-rose-500 font-medium mt-1.5 px-2 animate-[bounce_0.5s_ease-in-out_2] motion-reduce:animate-none flex items-center space-x-1"
+          >
             <span>⚠️</span>
             <span>{error}</span>
           </p>

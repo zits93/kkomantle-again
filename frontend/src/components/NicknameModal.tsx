@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheckResult } from '../types/game';
 import { User, ShieldCheck, ArrowRight, X, AlertCircle } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface NicknameModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [checkResult, setCheckResult] = useState<UserCheckResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const modalRef = useModalA11y<HTMLDivElement>({ isOpen, onClose, canDismiss });
 
   useEffect(() => {
     if (isOpen) {
@@ -99,10 +101,17 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl relative">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nickname-modal-title"
+        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl relative"
+      >
         {canDismiss && (
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="absolute top-4 right-4 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           >
             <X className="w-4 h-4" />
@@ -115,7 +124,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
             <div className="space-y-1">
               <div className="flex items-center space-x-2 text-zinc-900 dark:text-zinc-100 font-bold text-base">
                 <User className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
-                <span>닉네임 설정</span>
+                <h2 id="nickname-modal-title">닉네임 설정</h2>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                 게임 기록 및 랭킹에 저장되는 닉네임입니다.
@@ -124,17 +133,20 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
 
             <form onSubmit={handleCheckNickname} className="space-y-3">
               <div>
+                <label htmlFor="nickname-input" className="sr-only">닉네임</label>
                 <input
+                  id="nickname-input"
                   type="text"
                   value={inputValue}
                   onChange={e => {
                     setInputValue(e.target.value);
                     if (errorMsg) setErrorMsg(null);
                   }}
+                  disabled={loading}
                   placeholder="예: 알파카, 지존개발자"
                   autoFocus
                   maxLength={12}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-normal"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-normal disabled:opacity-60"
                 />
                 {errorMsg && (
                   <div className="mt-2 space-y-2">

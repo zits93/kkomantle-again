@@ -109,7 +109,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               <div className="flex items-center space-x-1.5">
                 <button
                   onClick={handleClose}
-                  className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-zinc-400"
+                  aria-label="채팅창 닫기"
+                  className={`p-1 rounded transition ${
+                    theme === 'excel'
+                      ? 'text-white hover:bg-emerald-800'
+                      : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800'
+                  }`}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -179,7 +184,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 theme === 'excel' ? 'border-gray-300 bg-gray-50' : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950'
               }`}
             >
+              <label htmlFor="chat-message-input" className="sr-only">
+                채팅 메시지
+              </label>
               <input
+                id="chat-message-input"
                 type="text"
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
@@ -193,10 +202,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className={`p-1.5 rounded-md transition disabled:opacity-40 ${
+                aria-label="메시지 전송"
+                className={`p-1.5 rounded-md transition disabled:opacity-40 cursor-pointer ${
                   theme === 'excel'
-                    ? 'bg-excel-header text-white'
-                    : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                    ? 'bg-excel-header text-white hover:bg-emerald-800'
+                    : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800'
                 }`}
               >
                 <Send className="w-3.5 h-3.5" />

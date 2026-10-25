@@ -212,10 +212,12 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
     <div className="w-full max-w-2xl mx-auto px-4 pb-12">
       {/* Sort Controls & Meta Bar */}
       <div className="flex items-center justify-between mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-2">
-        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-xs select-none">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-xs select-none" role="group" aria-label="정렬 기준">
           <button
+            type="button"
             onClick={() => setSortMode('similarity')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
+            aria-pressed={sortMode === 'similarity'}
+            className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
               sortMode === 'similarity'
                 ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
                 : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -224,8 +226,10 @@ export const GuessList: React.FC<GuessListProps> = ({ allGuesses, currentNicknam
             유사도순
           </button>
           <button
+            type="button"
             onClick={() => setSortMode('recent')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
+            aria-pressed={sortMode === 'recent'}
+            className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
               sortMode === 'recent'
                 ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
                 : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
