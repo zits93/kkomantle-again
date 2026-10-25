@@ -19,6 +19,9 @@ const FALLBACK_SECRET_WORDS = [
   '와인', '호랑이', '사자', '코끼리', '기린', '토끼', '다람쥐', '돌고래', '펭귄', '독수리'
 ];
 
+export const CLOUDFLARE_TUNNEL_HOST = 'mirrors-tumor-luis-feature.trycloudflare.com';
+export const NGROK_TUNNEL_HOST = '7b27-211-177-123-232.ngrok-free.app';
+
 export const resolveServerHost = (): string => {
   if (typeof window === 'undefined') return '';
   const params = new URLSearchParams(window.location.search);
@@ -29,7 +32,10 @@ export const resolveServerHost = (): string => {
     return clean;
   }
   const saved = localStorage.getItem('kkomantle_backend_server');
-  if (saved) return saved;
+  // If previously saved host was old ngrok domain which might be blocked by corporate firewalls, prefer Cloudflare
+  if (saved && !saved.includes('ngrok-free.app')) {
+    return saved;
+  }
 
   const envWsUrl = (import.meta as any).env?.VITE_WS_URL;
   if (envWsUrl) {
@@ -37,7 +43,7 @@ export const resolveServerHost = (): string => {
   }
 
   if (window.location.hostname.includes('github.io')) {
-    return '7b27-211-177-123-232.ngrok-free.app';
+    return CLOUDFLARE_TUNNEL_HOST;
   }
 
   return `${window.location.hostname}:8000`;
@@ -237,10 +243,9 @@ export const useGameSocket = (backendUrl?: string) => {
   const fetchServerState = useCallback(async () => {
     try {
       const baseHttp = getBaseHttpUrl();
-      const headers = { 'ngrok-skip-browser-warning': '1' };
 
-      // 1. Fetch Hall of Fame
-      const hofRes = await fetch(`${baseHttp}/api/hall-of-fame`, { headers });
+      // 1. Fetch Hall of Fame (Clean CORS Simple Request - no preflight)
+      const hofRes = await fetch(`${baseHttp}/api/hall-of-fame?ngrok-skip-browser-warning=true`);
       if (hofRes.ok) {
         const data = await hofRes.json();
         if (Array.isArray(data)) {
@@ -250,7 +255,7 @@ export const useGameSocket = (backendUrl?: string) => {
       }
 
       // 2. Fetch Active Game State & All Guesses for current round
-      const stateRes = await fetch(`${baseHttp}/api/game-state?nickname=${encodeURIComponent(nickname)}`, { headers });
+      const stateRes = await fetch(`${baseHttp}/api/game-state?nickname=${encodeURIComponent(nickname)}&ngrok-skip-browser-warning=true`);
       if (stateRes.ok) {
         const gameState = await stateRes.json();
         if (gameState.roundId) {
@@ -279,7 +284,7 @@ export const useGameSocket = (backendUrl?: string) => {
       }
 
       // 3. Fetch Recent Chat
-      const chatRes = await fetch(`${baseHttp}/api/chat`, { headers });
+      const chatRes = await fetch(`${baseHttp}/api/chat?ngrok-skip-browser-warning=true`);
       if (chatRes.ok) {
         const chatData = await chatRes.json();
         if (Array.isArray(chatData)) {
@@ -290,7 +295,7 @@ export const useGameSocket = (backendUrl?: string) => {
     } catch {
       // Fallback to local storage (already loaded in useState initializers)
     }
-  }, [getBaseHttpUrl, saveAllGuesses]);
+  }, [getBaseHttpUrl, saveAllGuesses, nickname]);
 
   useEffect(() => {
     fetchServerState();
@@ -308,7 +313,7 @@ export const useGameSocket = (backendUrl?: string) => {
     const testHttpFallback = async () => {
       try {
         const baseHttp = getBaseHttpUrl();
-        const res = await fetch(`${baseHttp}/api/health`, { headers: { 'ngrok-skip-browser-warning': '1' } });
+        const res = await fetch(`${baseHttp}/api/health?ngrok-skip-browser-warning=true`);
         if (res.ok && !isCleanedUp) {
           setIsConnected(true);
           setIsHttpFallback(true);
@@ -533,11 +538,10 @@ export const useGameSocket = (backendUrl?: string) => {
       (async () => {
         try {
           const baseHttp = getBaseHttpUrl();
-          const res = await fetch(`${baseHttp}/api/guess`, {
+          const res = await fetch(`${baseHttp}/api/guess?ngrok-skip-browser-warning=true`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': '1'
+              'Content-Type': 'text/plain'
             },
             body: JSON.stringify({ word: trimmed, nickname })
           });
@@ -664,9 +668,9 @@ export const useGameSocket = (backendUrl?: string) => {
       (async () => {
         try {
           const baseHttp = getBaseHttpUrl();
-          await fetch(`${baseHttp}/api/vote`, {
+          await fetch(`${baseHttp}/api/vote?ngrok-skip-browser-warning=true`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ nickname })
           });
           fetchServerState();
@@ -741,9 +745,9 @@ export const useGameSocket = (backendUrl?: string) => {
       (async () => {
         try {
           const baseHttp = getBaseHttpUrl();
-          const res = await fetch(`${baseHttp}/api/chat`, {
+          const res = await fetch(`${baseHttp}/api/chat?ngrok-skip-browser-warning=true`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ text: trimmed, nickname })
           });
           if (res.ok) {

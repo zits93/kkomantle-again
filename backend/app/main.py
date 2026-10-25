@@ -3,7 +3,7 @@ import uuid
 import os
 import asyncio
 from typing import Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -21,11 +21,43 @@ app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    allow_private_network=True,
 )
+
+@app.middleware("http")
+async def cors_and_pna_middleware(request: Request, call_next):
+    origin = request.headers.get("origin") or "*"
+    if request.method == "OPTIONS":
+        response = Response(status_code=200, content="OK")
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
+
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
+async def parse_request_payload(request: Request) -> dict:
+    try:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            return await request.json()
+        body = await request.body()
+        if not body:
+            return {}
+        return json.loads(body.decode("utf-8"))
+    except Exception:
+        return {}
 
 # Startup: initialize first secret target word or restore active round
 @app.on_event("startup")
@@ -63,7 +95,8 @@ def get_chat_history():
     return chat_service.get_history()
 
 @app.post("/api/chat")
-async def api_send_chat(payload: dict):
+async def api_send_chat(request: Request):
+    payload = await parse_request_payload(request)
     nickname = payload.get("nickname", "익명").strip() or "익명"
     text = payload.get("text", "").strip()
     if not text:
@@ -81,7 +114,8 @@ def check_user_nickname(nickname: str, request: Request):
     return user_service.check_nickname(nickname, client_ip)
 
 @app.post("/api/users/confirm")
-async def confirm_user_nickname(payload: dict, request: Request):
+async def confirm_user_nickname(request: Request):
+    payload = await parse_request_payload(request)
     nickname = payload.get("nickname", "").strip()
     if not nickname:
         return {"error": "닉네임이 필요합니다."}
@@ -201,7 +235,8 @@ async def handle_guess_submission(
     }
 
 @app.post("/api/guess")
-async def api_submit_guess(payload: dict, request: Request):
+async def api_submit_guess(request: Request):
+    payload = await parse_request_payload(request)
     raw_word = payload.get("word", "").strip()
     nickname = payload.get("nickname", "익명").strip() or "익명"
     if not raw_word:
@@ -216,7 +251,8 @@ async def api_submit_guess(payload: dict, request: Request):
     return await handle_guess_submission(raw_word, nickname, client_ip)
 
 @app.post("/api/vote")
-async def api_vote_once_more(payload: dict, request: Request):
+async def api_vote_once_more(request: Request):
+    payload = await parse_request_payload(request)
     nickname = payload.get("nickname", "익명").strip() or "익명"
     client_ip = request.client.host if request.client else "127.0.0.1"
     forwarded = request.headers.get("x-forwarded-for")

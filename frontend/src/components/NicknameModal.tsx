@@ -56,9 +56,9 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
     try {
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const targetHost = serverHost || window.location.host;
-      const url = `${protocol}//${targetHost}/api/users/check?nickname=${encodeURIComponent(cleanNick)}`;
+      const url = `${protocol}//${targetHost}/api/users/check?nickname=${encodeURIComponent(cleanNick)}&ngrok-skip-browser-warning=true`;
 
-      const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+      const res = await fetch(url);
       if (!res.ok) throw new Error('서버 응답 오류');
 
       const data: UserCheckResult = await res.json();
@@ -82,13 +82,12 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({
     try {
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const targetHost = serverHost || window.location.host;
-      const url = `${protocol}//${targetHost}/api/users/confirm`;
+      const url = `${protocol}//${targetHost}/api/users/confirm?ngrok-skip-browser-warning=true`;
 
       fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
+          'Content-Type': 'text/plain',
         },
         body: JSON.stringify({ nickname: confirmedNick }),
       }).catch(() => {});
